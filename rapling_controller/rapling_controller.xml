@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<library path="rapling_controller">
+  <class name="rapling_controller/RaplingInterface"
+         type="rapling_controller::RaplingInterface"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      Rapling Hardware Interface
+    </description>
+  </class>
+</library>

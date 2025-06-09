@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot name="rapling">
+  <!-- Definición del grupo cinemático "arm" usando una cadena completa -->
+  <group name="arm">
+    <chain base_link="base_link" tip_link="rapling_tip"/>
+  </group>
+
+  <!-- Estado "home" para el grupo "arm" -->
+  <group_state name="home" group="arm">
+    <joint name="joint_link_1" value="-0.157"/>
+    <joint name="joint_link_2" value="-0.436"/>
+    <joint name="joint_link_3" value="-0.715"/>
+    <joint name="joint_link_4" value="-0.314"/>
+  </group_state>
+
+  <!-- Definición del End Effector:
+       Este elemento le indica a MoveIt que el efector final (y por tanto el interactive marker)
+       debe ubicarse en "Link_4" del grupo "arm". -->
+  <end_effector name="rapling_ee" parent_link="rapling_tip" group="arm"/>
+
+  <!-- Disable collisions entre los links existentes -->
+  <disable_collisions link1="base_link" link2="Link1"    reason="Never"/>
+  <disable_collisions link1="base_link" link2="Link_2"    reason="Never"/>
+  <disable_collisions link1="base_link" link2="Link_3"    reason="Never"/>
+  <disable_collisions link1="base_link" link2="Link_4"    reason="Never"/>
+  <disable_collisions link1="Link1"    link2="Link_2"    reason="Never"/>
+  <disable_collisions link1="Link1"    link2="Link_3"    reason="Never"/>
+  <disable_collisions link1="Link1"    link2="Link_4"    reason="Never"/>
+  <disable_collisions link1="Link_2"   link2="Link_3"    reason="Never"/>
+  <disable_collisions link1="Link_2"   link2="Link_4"    reason="Never"/>
+  <disable_collisions link1="Link_3"   link2="Link_4"    reason="Never"/>
+</robot>
