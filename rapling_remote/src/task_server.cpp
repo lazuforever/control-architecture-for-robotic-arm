@@ -122,6 +122,8 @@ void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<rapling_msgs:
 
   if (task == 1)
   {
+
+      std::vector<double> arm_joint_goal;
     // 1) Verificar dos poses
     if (latest_finger_pose_array_.poses.size() != 2)
     {
@@ -150,8 +152,8 @@ void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<rapling_msgs:
     moveit_msgs::msg::JointConstraint elbow_up;
     elbow_up.joint_name      = "rapling_tip_joint";  // AJUSTA al nombre real
     elbow_up.position        = 1.0;               // radianes, ángulo ejemplo
-    elbow_up.tolerance_below = 0.5;
-    elbow_up.tolerance_above = 0.5;
+    elbow_up.tolerance_below = 0.05;
+    elbow_up.tolerance_above = 0.05;
     elbow_up.weight          = 1.0;
     moveit_msgs::msg::Constraints path_c;
     path_c.joint_constraints.push_back(elbow_up);
@@ -175,6 +177,7 @@ void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<rapling_msgs:
     const auto& trajectory_points = plan.trajectory_.joint_trajectory.points;
     if (!trajectory_points.empty()) {
         const auto& final_angles = trajectory_points.back().positions;
+         
 
         std::vector<double> angles_deg;
         angles_deg.reserve(final_angles.size());
@@ -204,28 +207,30 @@ void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<rapling_msgs:
             angles_deg.push_back(angle_deg);
             RCLCPP_INFO(get_logger(), "Articulación %zu: %.2f°", i, angle_deg);
         }
+            RCLCPP_INFO(get_logger(), "Ángulos finales (radianes): Base=%.2f, Shoulder=%.2f, Elbow=%.2f, Gripper=%.2f",
+            final_angles[0], final_angles[1], final_angles[2], final_angles[3]);
+           /* RCLCPP_INFO(get_logger(), "Ángulos finales (grados): Base=%.2f, Shoulder=%.2f, Elbow=%.2f, Gripper=%.2f",
+            angles_deg[0], angles_deg[1], angles_deg[2], angles_deg[3]);*/
 
-        // Imprimir el vector completo
-        {
-            std::ostringstream oss;
-            oss << "[";
-            for (size_t i = 0; i < angles_deg.size(); ++i) {
-                oss << std::fixed << std::setprecision(2) << angles_deg[i];
-                if (i + 1 < angles_deg.size()) oss << ", ";
-            }
-            oss << "]";
-            RCLCPP_INFO(get_logger(), "Vector completo de ángulos (grados): %s", oss.str().c_str());
-        }
+
+
+       // Imprimir los valores finales en radianes y grados
+           
 
         // Publicar el JointState con los ángulos en RADIANES
         msg.header.stamp = now();
         msg.name     = {"base", "shoulder", "elbow", "gripper"};
         msg.position = final_angles; // Publicamos los valores en radianes
         final_angles_pub_->publish(msg);
+
+
+          arm_joint_goal = {final_angles[0], final_angles[1], final_angles[2], final_angles[3]};
+          arm_move_group.setJointValueTarget(arm_joint_goal);   
+          arm_move_group.move();
     }
 
 
-      arm_move_group.move();
+         
     }
     // ---  SEGUNDA ETAPA Moverse a la posición 2 usando setPositionTarget ---
     bool arm_within_boundsm = arm_move_group.setPositionTarget(0.007, -0.022, 0.310);
@@ -269,6 +274,8 @@ void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<rapling_msgs:
     // 5) Limpiar restricción
     arm_move_group.clearPathConstraints();
   }
+
+
   else
   {
     RCLCPP_ERROR(get_logger(), "Task number %d no implementado", task);
