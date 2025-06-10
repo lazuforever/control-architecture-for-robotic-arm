@@ -313,7 +313,6 @@ void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<rapling_msgs:
         msg.position = final_angles; // Publicamos los valores en radianes
         final_angles_pub_->publish(msg);
 
-
           arm_joint_goal = {final_angles[0], final_angles[1], final_angles[2], final_angles[3]};
           arm_move_group.setJointValueTarget(arm_joint_goal);   
           arm_move_group.move();
@@ -338,13 +337,10 @@ void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<rapling_msgs:
           RCLCPP_ERROR(get_logger(), "Plan falló para joint_goal");
         }
       }
-  
-
-
+        
     // 5) Limpiar restricción
     arm_move_group.clearPathConstraints();
   }
-
 
   else
   {
