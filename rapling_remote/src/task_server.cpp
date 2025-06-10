@@ -159,7 +159,7 @@ void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<rapling_msgs:
     path_c.joint_constraints.push_back(elbow_up);
 
     // --- Mover a posición 1 ---
-    arm_move_group.setPathConstraints(path_c);
+    //arm_move_group.setPathConstraints(path_c);
     arm_move_group.setPositionTarget(p1.x, p1.y, p1.z);
     {
       moveit::planning_interface::MoveGroupInterface::Plan plan;
@@ -232,44 +232,114 @@ void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<rapling_msgs:
 
          
     }
-    // ---  SEGUNDA ETAPA Moverse a la posición 2 usando setPositionTarget ---
-    bool arm_within_boundsm = arm_move_group.setPositionTarget(0.007, -0.022, 0.310);
-    if (!arm_within_boundsm)
-    {
-      RCLCPP_WARN(get_logger(), "Posición media fuera de límites");
-      result->success = false;
-      goal_handle->abort(result);
-      return;
-    }
-  
-    moveit::planning_interface::MoveGroupInterface::Plan arm_planm;
-    bool arm_plan_successm = (arm_move_group.plan(arm_planm) == moveit::core::MoveItErrorCode::SUCCESS);
-    if (arm_plan_successm)
-    {
-      RCLCPP_INFO(get_logger(), "Planeamiento exitoso para posición intermedia");
-      arm_move_group.move();
-    }
-    else
-    {
-      RCLCPP_ERROR(get_logger(), "Fallo en el planeamiento para posición intermedia");
-      result->success = false;
-      goal_handle->abort(result);
-      return;
-    }
+    // ---  SEGUNDA ETAPA Moverse a la posición HOME usando  ---
+
+      {
+        std::vector<double> joint_goal = {-0.0, 0.0, -0.0, -0.0};
+        if (!arm_move_group.setJointValueTarget(joint_goal)) {
+          RCLCPP_ERROR(get_logger(), "Error al asignar joint goal");
+        }
+        // Opcionalmente planificar antes de move:
+        moveit::planning_interface::MoveGroupInterface::Plan plan;
+        if (arm_move_group.plan(plan) == moveit::core::MoveItErrorCode::SUCCESS) {
+          arm_move_group.execute(plan);
+        } else {
+          RCLCPP_ERROR(get_logger(), "Plan falló para joint_goal");
+        }
+      }
     
     // --- Mover a posición 2 ---
     arm_move_group.setPositionTarget(p2.x, p2.y, p2.z);
     {
+
       moveit::planning_interface::MoveGroupInterface::Plan plan;
       if (arm_move_group.plan(plan) != moveit::core::MoveItErrorCode::SUCCESS)
       {
-        RCLCPP_ERROR(get_logger(), "Plan failed para posición 2");
+        RCLCPP_ERROR(get_logger(), "Plan failed para posición 1");
         arm_move_group.clearPathConstraints();
         result->success = false;
         return goal_handle->abort(result);
       }
-      arm_move_group.move();
+
+     // Para usar M_PI y std::round si quieres redondear
+
+     // Obtener los ángulos finales de la trayectoria
+    const auto& trajectory_points = plan.trajectory_.joint_trajectory.points;
+    if (!trajectory_points.empty()) {
+        const auto& final_angles = trajectory_points.back().positions;
+         
+
+        std::vector<double> angles_deg;
+        angles_deg.reserve(final_angles.size());
+
+        RCLCPP_INFO(get_logger(),
+          "Ángulos finales de la trayectoria (en grados, ajustados como se envían al Arduino):");
+
+        for (size_t i = 0; i < final_angles.size(); ++i) {
+            double angle_deg = 0.0;
+            switch (i) {
+                case 0:
+                    angle_deg = ((final_angles[i] + (M_PI / 2)) * 180.0) / M_PI;
+                    break;
+                case 1:
+                    angle_deg = 180.0 - ((final_angles[i] + (M_PI / 2)) * 180.0) / M_PI;
+                    break;
+                case 2:
+                    angle_deg = ((final_angles[i] + (M_PI / 2)) * 180.0) / M_PI;
+                    break;
+                case 3:
+                    angle_deg = ((-final_angles[i]) * 180.0) / (M_PI / 2);
+                    break;
+                default:
+                    angle_deg = (final_angles[i] * 180.0) / M_PI;
+                    break;
+            }
+            angles_deg.push_back(angle_deg);
+            RCLCPP_INFO(get_logger(), "Articulación %zu: %.2f°", i, angle_deg);
+        }
+            RCLCPP_INFO(get_logger(), "Ángulos finales (radianes): Base=%.2f, Shoulder=%.2f, Elbow=%.2f, Gripper=%.2f",
+            final_angles[0], final_angles[1], final_angles[2], final_angles[3]);
+           /* RCLCPP_INFO(get_logger(), "Ángulos finales (grados): Base=%.2f, Shoulder=%.2f, Elbow=%.2f, Gripper=%.2f",
+            angles_deg[0], angles_deg[1], angles_deg[2], angles_deg[3]);*/
+
+
+
+       // Imprimir los valores finales en radianes y grados
+           
+
+        // Publicar el JointState con los ángulos en RADIANES
+        msg.header.stamp = now();
+        msg.name     = {"base", "shoulder", "elbow", "gripper"};
+        msg.position = final_angles; // Publicamos los valores en radianes
+        final_angles_pub_->publish(msg);
+
+
+          arm_joint_goal = {final_angles[0], final_angles[1], final_angles[2], final_angles[3]};
+          arm_move_group.setJointValueTarget(arm_joint_goal);   
+          arm_move_group.move();
     }
+
+
+    }
+
+
+      // ---  ULTIMA  ETAPA Moverse a la posición HOME   ---
+
+      {
+        std::vector<double> joint_goal = {-0.0, 0.0, -0.0, -0.0};
+        if (!arm_move_group.setJointValueTarget(joint_goal)) {
+          RCLCPP_ERROR(get_logger(), "Error al asignar joint goal");
+        }
+        // Opcionalmente planificar antes de move:
+        moveit::planning_interface::MoveGroupInterface::Plan plan;
+        if (arm_move_group.plan(plan) == moveit::core::MoveItErrorCode::SUCCESS) {
+          arm_move_group.execute(plan);
+        } else {
+          RCLCPP_ERROR(get_logger(), "Plan falló para joint_goal");
+        }
+      }
+  
+
 
     // 5) Limpiar restricción
     arm_move_group.clearPathConstraints();
