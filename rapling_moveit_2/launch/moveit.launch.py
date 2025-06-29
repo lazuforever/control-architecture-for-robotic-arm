@@ -29,6 +29,12 @@ def generate_launch_description():
         .to_moveit_configs()
     )
 
+    joint_state_publisher_gui_node = Node(
+        package='joint_state_publisher_gui',
+        executable='joint_state_publisher_gui'
+    )
+
+
     move_group_node = Node(
         package="moveit_ros_move_group",
         executable="move_group",
@@ -65,6 +71,7 @@ def generate_launch_description():
         [
             is_sim_arg,
             move_group_node, 
+            #joint_state_publisher_gui_node,
             rviz_node
         ]
     )

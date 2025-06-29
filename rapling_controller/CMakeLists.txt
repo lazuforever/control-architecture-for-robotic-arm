@@ -4,6 +4,7 @@ project(rapling_controller)
 find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
 find_package(trajectory_msgs REQUIRED)
+find_package(moveit_msgs REQUIRED)  # Añadido
 find_package(rclcpp REQUIRED)
 find_package(rclpy REQUIRED)
 find_package(hardware_interface REQUIRED)
@@ -29,11 +30,10 @@ ament_target_dependencies(${PROJECT_NAME}
   pluginlib
   rclcpp
   rclcpp_lifecycle
+  moveit_msgs  # Añadido
 )
 
 pluginlib_export_plugin_description_file(hardware_interface rapling_controller.xml)
-
-#ament_python_install_package(${PROJECT_NAME})
 
 install(TARGETS
   slider_control
@@ -73,6 +73,7 @@ ament_export_dependencies(
   pluginlib
   rclcpp
   rclcpp_lifecycle
+  moveit_msgs  # Añadido
 )
 
 if(BUILD_TESTING)

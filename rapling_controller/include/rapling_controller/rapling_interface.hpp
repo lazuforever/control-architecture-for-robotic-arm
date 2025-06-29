@@ -1,5 +1,5 @@
-#ifndef ARDUINOBOT_INTERFACE_H
-#define ARDUINOBOT_INTERFACE_H
+#ifndef RAPLING_INTERFACE_H
+#define RAPLING_INTERFACE_H
 
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_lifecycle/state.hpp>
@@ -11,6 +11,8 @@
 #include <vector>
 #include <array>
 #include <string>
+#include <sstream>
+#include <cmath>
 
 namespace rapling_controller
 {
@@ -47,12 +49,18 @@ private:
   std::vector<double> position_states_;
 
   // Angles read back from Arduino
-  std::array<int, 4> ANGULOSROBOT_;
+  std::array<int, 5> ANGULOSROBOT_;
 
-  // Publisher for the set-point JointState message
-  rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr setpoint_pub_;
+  // Publisher for the serial readings JointState message
+  rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr serial_angles_pub_;
+  
+  // Node pointer for publisher
+  rclcpp::Node::SharedPtr node_;
+  
+  // Helper function to convert degrees to radians
+  double degreesToRadians(int degrees);
 };
 
 }  // namespace rapling_controller
 
-#endif  // ARDUINOBOT_INTERFACE_H
+#endif  // RAPLING_INTERFACE_H

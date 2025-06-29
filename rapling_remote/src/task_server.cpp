@@ -150,7 +150,7 @@ void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<rapling_msgs:
 
     // 4) Definir JointConstraint para "codo arriba"
     moveit_msgs::msg::JointConstraint elbow_up;
-    elbow_up.joint_name      = "rapling_tip_joint";  // AJUSTA al nombre real
+    elbow_up.joint_name      = "joint_link_3";  // AJUSTA al nombre real
     elbow_up.position        = 1.0;               // radianes, ángulo ejemplo
     elbow_up.tolerance_below = 0.05;
     elbow_up.tolerance_above = 0.05;
@@ -159,8 +159,12 @@ void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<rapling_msgs:
     path_c.joint_constraints.push_back(elbow_up);
 
     // --- Mover a posición 1 ---
-    //arm_move_group.setPathConstraints(path_c);
+    //arm_move_group.setGoalConstraints(path_c);
+    
     arm_move_group.setPositionTarget(p1.x, p1.y, p1.z);
+    //arm_move_group.setJointValueTarget("joint_link_3", 1.0);
+
+    
     {
       moveit::planning_interface::MoveGroupInterface::Plan plan;
       if (arm_move_group.plan(plan) != moveit::core::MoveItErrorCode::SUCCESS)
@@ -180,37 +184,40 @@ void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<rapling_msgs:
          
 
         std::vector<double> angles_deg;
-        angles_deg.reserve(final_angles.size());
+        angles_deg.reserve(final_angles.size()+1);
 
         RCLCPP_INFO(get_logger(),
           "Ángulos finales de la trayectoria (en grados, ajustados como se envían al Arduino):");
 
-        for (size_t i = 0; i < final_angles.size(); ++i) {
+        for (size_t i = 0; i < final_angles.size()+1; ++i) {
             double angle_deg = 0.0;
+    
             switch (i) {
                 case 0:
-                    angle_deg = ((final_angles[i] + (M_PI / 2)) * 180.0) / M_PI;
+                    angle_deg = (final_angles[i]  * (180.0/ M_PI )) + 150;
                     break;
                 case 1:
-                    angle_deg = 180.0 - ((final_angles[i] + (M_PI / 2)) * 180.0) / M_PI;
+                    angle_deg = (-1*final_angles[i]  * (180.0/ M_PI )) + 240;
+                    angles_deg.push_back(angle_deg);
+                    angle_deg = (final_angles[i]  * (180.0/ M_PI )) + 60;
                     break;
                 case 2:
-                    angle_deg = ((final_angles[i] + (M_PI / 2)) * 180.0) / M_PI;
+                    angle_deg = (final_angles[i]  * (180.0/ M_PI )) + 150;
                     break;
-                case 3:
-                    angle_deg = ((-final_angles[i]) * 180.0) / (M_PI / 2);
+                case 3:   
+                    angle_deg = (final_angles[i]  * (180.0/ M_PI )) + 150;
                     break;
                 default:
                     angle_deg = (final_angles[i] * 180.0) / M_PI;
                     break;
             }
             angles_deg.push_back(angle_deg);
-            RCLCPP_INFO(get_logger(), "Articulación %zu: %.2f°", i, angle_deg);
+          
         }
             RCLCPP_INFO(get_logger(), "Ángulos finales (radianes): Base=%.2f, Shoulder=%.2f, Elbow=%.2f, Gripper=%.2f",
             final_angles[0], final_angles[1], final_angles[2], final_angles[3]);
-           /* RCLCPP_INFO(get_logger(), "Ángulos finales (grados): Base=%.2f, Shoulder=%.2f, Elbow=%.2f, Gripper=%.2f",
-            angles_deg[0], angles_deg[1], angles_deg[2], angles_deg[3]);*/
+            RCLCPP_INFO(get_logger(), "Ángulos finales (grados): Base=%.2f, ShoulderA=%.2f,ShoulderB=%.2f, Elbow=%.2f, Gripper=%.2f",
+            angles_deg[0], angles_deg[1], angles_deg[2], angles_deg[3], angles_deg[4]);
 
 
 
@@ -249,6 +256,7 @@ void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<rapling_msgs:
       }
     
     // --- Mover a posición 2 ---
+   // arm_move_group.setPathConstraints(path_c);
     arm_move_group.setPositionTarget(p2.x, p2.y, p2.z);
     {
 

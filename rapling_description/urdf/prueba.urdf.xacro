@@ -51,6 +51,32 @@
       </geometry>
     </collision>
   </link>
+<!-- Enlace "mesa" para limitar el movimiento -->
+<link name="table">
+  <visual>
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <geometry>
+      <box size="2 2 0.01"/> <!-- Tamaño de la mesa (2x2 metros, grosor 0.01) -->
+    </geometry>
+    <material name="table_color">
+      <color rgba="0.5 0.5 0.5 1"/> <!-- Color gris -->
+    </material>
+  </visual>
+  <collision>
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <geometry>
+      <box size="2 2 0.01"/>
+    </geometry>
+  </collision>
+</link>
+
+<!-- Joint fijo para conectar la mesa al mundo -->
+<joint name="table_joint" type="fixed">
+  <parent link="world"/>
+  <child link="table"/>
+  <origin xyz="0 0 -0.066" rpy="0 0 0"/> <!-- Posición de la mesa (en el origen) -->
+</joint>
+
   <link
     name="Link1">
 
@@ -117,6 +143,9 @@
       effort="0"
       velocity="0" />
   </joint>
+
+
+
   <link
     name="Link_2">
   
@@ -131,7 +160,7 @@
       <material
         name="">
         <color
-          rgba="0.79216 0.81961 0.93333 1" />
+          rgba="0.6216 0.81961 0.93333 1" />
       </material>
     </visual>
     <collision>
@@ -144,24 +173,27 @@
       </geometry>
     </collision>
   </link>
+
   <joint
     name="joint_link_2"
     type="revolute">
     <origin
-      xyz="0 0 0.035615"
-      rpy="1.5476 -1.553 -1.5478" />
+      xyz="0 0 0.05"
+      rpy="1.5476 -0.0  -1.5478" />
     <parent
       link="Link1" />
     <child
       link="Link_2" />
     <axis
-      xyz="0.0 0.0 -1" />
+      xyz="0.0 0.0 1" />
     <limit
-      lower="-1.57"
-      upper="1.57"
+      lower="3.14"
+      upper="0.0"
       effort="0"
       velocity="0" />
   </joint>
+
+
   <link
     name="Link_3">
     <visual>

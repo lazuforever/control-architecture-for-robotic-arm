@@ -1,7 +1,7 @@
 # Default initial positions for arduinobot's ros2_control fake system
 
 initial_positions:
-  Joint_link_1: -0.157
-  Joint_link_2: -0.436
-  Joint_link_3: -0.715
-  Joint_link_4: -0.314
+  Joint_link_1: -0.0
+  Joint_link_2: -0.0
+  Joint_link_3: -0.0
+  Joint_link_4: -0.0
