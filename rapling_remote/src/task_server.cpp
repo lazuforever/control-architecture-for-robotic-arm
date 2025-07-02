@@ -227,7 +227,7 @@ void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<rapling_msgs:
         // Publicar el JointState con los ángulos en RADIANES
         msg.header.stamp = now();
         msg.name     = {"base", "shoulder", "elbow", "gripper"};
-        msg.position = final_angles; // Publicamos los valores en radianes
+        msg.position = angles_deg; // Publicamos los valores en radianes
         final_angles_pub_->publish(msg);
 
 
@@ -235,8 +235,6 @@ void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<rapling_msgs:
           arm_move_group.setJointValueTarget(arm_joint_goal);   
           arm_move_group.move();
     }
-
-
          
     }
     // ---  SEGUNDA ETAPA Moverse a la posición HOME usando  ---
@@ -249,6 +247,15 @@ void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<rapling_msgs:
         // Opcionalmente planificar antes de move:
         moveit::planning_interface::MoveGroupInterface::Plan plan;
         if (arm_move_group.plan(plan) == moveit::core::MoveItErrorCode::SUCCESS) {
+          
+                  // Publicar JointState de la posición HOME
+          sensor_msgs::msg::JointState home_msg;
+          home_msg.header.stamp = now();
+          home_msg.name     = {"base", "shoulder", "elbow", "gripper"};
+          home_msg.position = joint_goal;  // En radianes
+
+          final_angles_pub_->publish(home_msg);
+          
           arm_move_group.execute(plan);
         } else {
           RCLCPP_ERROR(get_logger(), "Plan falló para joint_goal");
@@ -307,8 +314,8 @@ void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<rapling_msgs:
         }
             RCLCPP_INFO(get_logger(), "Ángulos finales (radianes): Base=%.2f, Shoulder=%.2f, Elbow=%.2f, Gripper=%.2f",
             final_angles[0], final_angles[1], final_angles[2], final_angles[3]);
-           /* RCLCPP_INFO(get_logger(), "Ángulos finales (grados): Base=%.2f, Shoulder=%.2f, Elbow=%.2f, Gripper=%.2f",
-            angles_deg[0], angles_deg[1], angles_deg[2], angles_deg[3]);*/
+           RCLCPP_INFO(get_logger(), "Ángulos finales (grados): Base=%.2f, Shoulder=%.2f, Elbow=%.2f, Gripper=%.2f",
+            angles_deg[0], angles_deg[1], angles_deg[2], angles_deg[3]);
 
 
 
@@ -318,7 +325,7 @@ void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<rapling_msgs:
         // Publicar el JointState con los ángulos en RADIANES
         msg.header.stamp = now();
         msg.name     = {"base", "shoulder", "elbow", "gripper"};
-        msg.position = final_angles; // Publicamos los valores en radianes
+        msg.position = angles_deg; // Publicamos los valores en radianes
         final_angles_pub_->publish(msg);
 
           arm_joint_goal = {final_angles[0], final_angles[1], final_angles[2], final_angles[3]};

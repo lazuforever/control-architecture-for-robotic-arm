@@ -14,8 +14,9 @@ find_package(rapling_msgs REQUIRED)
 find_package(moveit_ros_planning_interface REQUIRED)
 find_package(rclpy REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)  # Añadido sensor_msgs para visualizacion_angulos
 
-
+# Biblioteca compartida task_server
 add_library(task_server SHARED src/task_server.cpp)
 
 target_include_directories(task_server PRIVATE
@@ -34,6 +35,17 @@ rclcpp_components_register_node(task_server
   PLUGIN "rapling_remote::TaskServer"
   EXECUTABLE task_server_node)
 
+# Ejecutable para visualizacion_angulos
+add_executable(visualizacion_angulos src/visualizacion_angulos.cpp)
+
+ament_target_dependencies(visualizacion_angulos
+  rclcpp
+  sensor_msgs
+)
+
+install(TARGETS visualizacion_angulos
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 ament_python_install_package(${PROJECT_NAME})
 
@@ -42,8 +54,6 @@ install (
   DESTINATION share/${PROJECT_NAME}
 )
 
-
-
 install(TARGETS
   task_server
   ARCHIVE DESTINATION lib
@@ -51,11 +61,9 @@ install(TARGETS
   RUNTIME DESTINATION bin)
 
 install (PROGRAMS
-${PROJECT_NAME}/alexa_interface.py
-DESTINATION lib/${PROJECT_NAME}
+  ${PROJECT_NAME}/alexa_interface.py
+  DESTINATION lib/${PROJECT_NAME}
 )
-
-
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
