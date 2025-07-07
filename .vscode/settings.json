@@ -1,0 +1,22 @@
+{
+    "python.autoComplete.extraPaths": [
+        "/home/lunanirvana/ros2_ws/install/visualization_pkg/lib/python3.10/site-packages",
+        "/home/lunanirvana/ros2_ws/install/rapling_remote/local/lib/python3.10/dist-packages",
+        "/home/lunanirvana/ros2_ws/install/rapling_msgs/local/lib/python3.10/dist-packages",
+        "/home/lunanirvana/ros2_ws/install/learning_topic/lib/python3.10/site-packages",
+        "/home/lunanirvana/ros2_ws/install/learning_interface/local/lib/python3.10/dist-packages",
+        "/home/lunanirvana/ros2_ws/install/arduinobot_msgs/local/lib/python3.10/dist-packages",
+        "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/home/lunanirvana/ros2_ws/install/visualization_pkg/lib/python3.10/site-packages",
+        "/home/lunanirvana/ros2_ws/install/rapling_remote/local/lib/python3.10/dist-packages",
+        "/home/lunanirvana/ros2_ws/install/rapling_msgs/local/lib/python3.10/dist-packages",
+        "/home/lunanirvana/ros2_ws/install/learning_topic/lib/python3.10/site-packages",
+        "/home/lunanirvana/ros2_ws/install/learning_interface/local/lib/python3.10/dist-packages",
+        "/home/lunanirvana/ros2_ws/install/arduinobot_msgs/local/lib/python3.10/dist-packages",
+        "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+    ]
+}

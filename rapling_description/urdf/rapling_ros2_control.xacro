@@ -1,0 +1,54 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="rapling">
+
+    <ros2_control name="RobotSystem" type="system">
+
+        <xacro:property name="PI" value="3.14159265359" />
+
+        <!-- ros2_control Real Robot,Esto le indica a ros2_control que debe buscar un plugin llamado "rapling_controller/RaplingInterface". 
+        
+        Puedes agregar más controladores o interfaces sin modificar el código principal
+        -->
+
+        <xacro:unless value="$(arg is_sim)">
+            <hardware>
+                <plugin>rapling_controller/RaplingInterface</plugin>
+                <param name="port">/dev/ttyUSB0</param>
+            </hardware>
+        </xacro:unless>
+
+        <joint name="joint_link_1">
+            <command_interface name="position">
+            <param name="min">-${0.0}</param>
+            <param name="max">${PI}</param>
+            </command_interface>
+            <state_interface name="position"/>
+        </joint>
+
+        <joint name="joint_link_2">
+            <command_interface name="position">
+            <param name="min">-${PI / 2}</param>
+            <param name="max">${PI / 2}</param>
+            </command_interface>
+            <state_interface name="position"/>
+        </joint>
+
+        <joint name="joint_link_3">
+            <command_interface name="position">
+            <param name="min">-${PI / 2}</param>
+            <param name="max">${PI / 2}</param>
+            </command_interface>
+            <state_interface name="position"/>
+        </joint>
+
+        <joint name="joint_link_4">
+            <command_interface name="position">
+            <param name="min">-${PI / 2}</param>
+            <param name="max">${PI / 2}</param>
+            </command_interface>
+            <state_interface name="position"/>
+        </joint>
+
+    </ros2_control>
+
+</robot>

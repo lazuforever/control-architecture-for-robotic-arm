@@ -1,0 +1,315 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- URDF creado por SolidWorks to URDF Exporter,
+     ajustado para intentar que el robot quede vertical en el origen. -->
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="rapling">
+   <!-- Load Simulated or Real Hardware Interfaces -->
+    <xacro:arg name="is_sim" default="False"/>
+    
+
+    <!-- Include ros2_control Plugins -->
+    <xacro:include filename="$(find rapling_description)/urdf/rapling_ros2_control.xacro" />
+
+
+  <!-- Enlace virtual "world" para anclar el robot al origen -->
+  <link name="world"/> 
+
+  <!-- Joint fijo: rotamos 90° en X y no desplazamos (xyz="0 0 0"). 
+       Si sigue de lado, prueba otras combinaciones (ver explicación arriba). -->
+  <joint name="virtual_joint" type="fixed">
+    <parent link="world"/>
+    <child link="base_link"/>
+    <!-- Ajusta rpy y xyz según tu STL -->
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+  </joint>
+
+  <!-- ===================== base_link ===================== -->
+  <link
+    name="base_link">
+
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rapling_description/meshes/base_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rapling_description/meshes/base_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+<!-- Enlace "mesa" para limitar el movimiento -->
+<link name="table">
+  <visual>
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <geometry>
+      <box size="2 2 0.01"/> <!-- Tamaño de la mesa (2x2 metros, grosor 0.01) -->
+    </geometry>
+    <material name="table_color">
+      <color rgba="0.5 0.5 0.5 1"/> <!-- Color gris -->
+    </material>
+  </visual>
+  <collision>
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <geometry>
+      <box size="2 2 0.01"/>
+    </geometry>
+  </collision>
+</link>
+
+<!-- Joint fijo para conectar la mesa al mundo -->
+<joint name="table_joint" type="fixed">
+  <parent link="world"/>
+  <child link="table"/>
+  <origin xyz="0 0 -0.085" rpy="0 0 0"/> <!-- Posición de la mesa (en el origen) -->
+</joint>
+
+  <link
+    name="Link1">
+
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rapling_description/meshes/Link1.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rapling_description/meshes/Link1.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+<!-- Link que representa la punta del robot -->
+<link name="rapling_tip">
+  <visual>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <geometry>
+      <box size="0.008 0.008 0.008"/>
+    </geometry>
+    <material name="tip_color">
+      <color rgba="1 0 0 1"/>
+    </material>
+  </visual>
+  <collision>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <geometry>
+      <box size="0.005 0.005 0.005"/>
+    </geometry>
+  </collision>
+</link>
+
+
+  <joint
+    name="joint_link_1"
+    type="revolute">
+    <origin
+      xyz="0 0 0"
+      rpy="0 0 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="Link1" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-1.57"
+      upper="1.57"
+      effort="0"
+      velocity="0" />
+  </joint>
+
+
+
+  <link
+    name="Link_2">
+  
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rapling_description/meshes/Link_2.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.6216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rapling_description/meshes/Link_2.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint
+    name="joint_link_2"
+    type="revolute">
+    <origin
+      xyz="0 0 0.05"
+      rpy="1.5476 0.0  1.5478" />
+    <parent
+      link="Link1" />
+    <child
+      link="Link_2" />
+    <axis
+      xyz="0.0 0.0 1" />
+    <limit
+      lower="3.14"
+      upper="0.0"
+      effort="0"
+      velocity="0" />
+  </joint>
+
+
+  <link
+    name="Link_3">
+    <visual>
+      <origin
+        xyz="0 -0.025 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rapling_description/meshes/Link_3.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rapling_description/meshes/Link_3.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="joint_link_3"
+    type="revolute">
+    <origin
+      xyz="0.12 0.0 0.0 "
+      rpy="0.0 0.0 0.0" />
+    <parent
+      link="Link_2" />
+    <child
+      link="Link_3" />
+    <axis
+      xyz="0.0 0.0 1" />
+    <limit
+      lower="-1.57"
+      upper="1.57"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="Link_4">
+   
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rapling_description/meshes/Link_4.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://rapling_description/meshes/Link_4.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint
+    name="joint_link_4"
+    type="revolute">
+    <origin
+      xyz="0.12052 0.0 0.0"
+      rpy="0 0.0 0.0" />
+    <parent
+      link="Link_3" />
+    <child
+      link="Link_4" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-1.57"
+      upper="1.57"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <!-- Joint fijo que une Link_4 con rapling_tip -->
+  <joint name="rapling_tip_joint" type="fixed">
+    <parent link="Link_4"/>
+    <child link="rapling_tip"/>
+    <origin xyz="0.06 0 -0.01 " rpy="0 0 0"/>
+  </joint>
+
+
+    <joint name="world_to_camera" type="fixed">
+        <parent link="base_link" />
+        <child link="camera" />
+        <origin  rpy="0 6.28 0" xyz="0.0 0.21 0.40" />
+    </joint>
+
+    <link name="camera">
+        <visual>
+            <origin xyz="0 0 0"/>
+        <geometry>
+           <mesh
+          filename="package://rapling_description/meshes/pi_camera.STL" scale="0.001 0.001 0.001" />
+        </geometry>
+      
+        </visual>
+    </link>
+
+
+
+
+</robot>

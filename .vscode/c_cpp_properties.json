@@ -1,0 +1,29 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/lunanirvana/ros2_ws/install/rapling_msgs/include/**",
+        "/home/lunanirvana/ros2_ws/install/rapling_controller/include/**",
+        "/home/lunanirvana/ros2_ws/install/learning_interface/include/**",
+        "/home/lunanirvana/ros2_ws/install/arduinobot_msgs/include/**",
+        "/opt/ros/humble/include/**",
+        "/home/lunanirvana/ros2_ws/src/learning_interface/include/**",
+        "/home/lunanirvana/ros2_ws/src/rapling_bringup/include/**",
+        "/home/lunanirvana/ros2_ws/src/rapling_controller/include/**",
+        "/home/lunanirvana/ros2_ws/src/rapling_description/include/**",
+        "/home/lunanirvana/ros2_ws/src/rapling_remote/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}
