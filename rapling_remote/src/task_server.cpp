@@ -313,7 +313,7 @@ namespace rapling_remote
               if (!trajectory_points.empty()) {
                   const auto& final_angles = trajectory_points.back().positions;
 
-                  // Convertir radianes a grados y aplicar ajustes
+                  // Convertir radianes a grados y aplicar ajustes para robot real.
                   std::vector<double> angles_deg = convertRadiansToDegrees(final_angles);
 
                   RCLCPP_INFO(get_logger(), "######################ANGULOS PARA home  (radianes): Base=%.2f, Shoulder=%.2f, Elbow=%.2f, Gripper=%.2f ###########################",
