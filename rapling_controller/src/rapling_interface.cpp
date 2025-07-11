@@ -201,7 +201,7 @@ hardware_interface::return_type RaplingInterface::write(const rclcpp::Time &time
 
 
   std::string msg;
-  int base = static_cast<int>(((position_commands_.at(0) )) * (180/M_PI) + 150);
+  int base = static_cast<int>(((position_commands_.at(0) )) * (180/M_PI));
   msg.append("b");
   msg.append(std::to_string(base));
   msg.append(",");
@@ -236,7 +236,7 @@ hardware_interface::return_type RaplingInterface::write(const rclcpp::Time &time
 
   try
   {
-    RCLCPP_INFO_STREAM(rclcpp::get_logger("RaplingInterface"),
+    /*RCLCPP_INFO_STREAM(rclcpp::get_logger("RaplingInterface"),
                      "Comandos de posición (radianes): " 
                      << position_commands_.at(0) << ", " 
                      << position_commands_.at(1) << ", "
@@ -244,7 +244,7 @@ hardware_interface::return_type RaplingInterface::write(const rclcpp::Time &time
                      << position_commands_.at(2) << ", " 
                      << position_commands_.at(3));
 
-    RCLCPP_INFO_STREAM(rclcpp::get_logger("RaplingInterface"), "Sending new command " << msg);
+    RCLCPP_INFO_STREAM(rclcpp::get_logger("RaplingInterface"), "Sending new command " << msg);*/
 
     arduino_.Write(msg);
   }

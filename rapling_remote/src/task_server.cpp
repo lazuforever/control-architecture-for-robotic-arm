@@ -210,9 +210,9 @@ namespace rapling_remote
             // Convertir radianes a grados y aplicar ajustes
             std::vector<double> angles_deg = convertRadiansToDegrees(final_angles);
 
-            RCLCPP_INFO(get_logger(), "Ángulos finales (radianes): Base=%.2f, Shoulder=%.2f, Elbow=%.2f, Gripper=%.2f",
+            RCLCPP_INFO(get_logger(), "######################ANGULOS PARA PICK (radianes): Base=%.2f, Shoulder=%.2f, Elbow=%.2f, Gripper=%.2f ###########################",
                         final_angles[0], final_angles[1], final_angles[2], final_angles[3]);
-            RCLCPP_INFO(get_logger(), "Ángulos finales (grados): Base=%.2f, ShoulderA=%.2f, ShoulderB=%.2f, Elbow=%.2f, Gripper=%.2f",
+            RCLCPP_INFO(get_logger(), "######################ANGULOS PARA PICK (Angular): Base=%.2f, Shoulder=%.2f, Elbow=%.2f, Gripper=%.2f ###########################",
                         angles_deg[0], angles_deg[1], angles_deg[2], angles_deg[3], angles_deg[4]);
 
             // Publicar el JointState con los ángulos en grados
@@ -243,9 +243,9 @@ namespace rapling_remote
                   // Convertir radianes a grados y aplicar ajustes
                   std::vector<double> angles_deg = convertRadiansToDegrees(final_angles);
 
-                  RCLCPP_INFO(get_logger(), "Ángulos HOME (radianes): Base=%.2f, Shoulder=%.2f, Elbow=%.2f, Gripper=%.2f",
+                  RCLCPP_INFO(get_logger(), "######################ANGULOS PARA HOME (radianes): Base=%.2f, Shoulder=%.2f, Elbow=%.2f, Gripper=%.2f ###########################",
                               final_angles[0], final_angles[1], final_angles[2], final_angles[3]);
-                  RCLCPP_INFO(get_logger(), "Ángulos HOME (grados): Base=%.2f, ShoulderA=%.2f, ShoulderB=%.2f, Elbow=%.2f, Gripper=%.2f",
+                  RCLCPP_INFO(get_logger(), "######################ANGULOS PARA HOME (angulares): Base=%.2f, Shoulder=%.2f, Elbow=%.2f, Gripper=%.2f ###########################",
                               angles_deg[0], angles_deg[1], angles_deg[2], angles_deg[3], angles_deg[4]);
 
                   // Publicar el JointState con los ángulos en grados
@@ -283,9 +283,9 @@ namespace rapling_remote
             // Convertir radianes a grados y aplicar ajustes
             std::vector<double> angles_deg = convertRadiansToDegrees(final_angles);
 
-            RCLCPP_INFO(get_logger(), "Ángulos finales (radianes): Base=%.2f, Shoulder=%.2f, Elbow=%.2f, Gripper=%.2f",
+            RCLCPP_INFO(get_logger(), "######################ANGULOS PARA PLACE (radianes): Base=%.2f, Shoulder=%.2f, Elbow=%.2f, Gripper=%.2f ###########################",
                         final_angles[0], final_angles[1], final_angles[2], final_angles[3]);
-            RCLCPP_INFO(get_logger(), "Ángulos finales (grados): Base=%.2f, ShoulderA=%.2f, ShoulderB=%.2f, Elbow=%.2f, Gripper=%.2f",
+            RCLCPP_INFO(get_logger(), "######################ANGULOS PARA PLACE (Angular): Base=%.2f, Shoulder=%.2f, Elbow=%.2f, Gripper=%.2f ###########################",
                         angles_deg[0], angles_deg[1], angles_deg[2], angles_deg[3], angles_deg[4]);
 
             // Publicar el JointState con los ángulos en grados
@@ -316,9 +316,9 @@ namespace rapling_remote
                   // Convertir radianes a grados y aplicar ajustes
                   std::vector<double> angles_deg = convertRadiansToDegrees(final_angles);
 
-                  RCLCPP_INFO(get_logger(), "Ángulos HOME (radianes): Base=%.2f, Shoulder=%.2f, Elbow=%.2f, Gripper=%.2f",
+                  RCLCPP_INFO(get_logger(), "######################ANGULOS PARA home  (radianes): Base=%.2f, Shoulder=%.2f, Elbow=%.2f, Gripper=%.2f ###########################",
                               final_angles[0], final_angles[1], final_angles[2], final_angles[3]);
-                  RCLCPP_INFO(get_logger(), "Ángulos HOME (grados): Base=%.2f, ShoulderA=%.2f, ShoulderB=%.2f, Elbow=%.2f, Gripper=%.2f",
+                  RCLCPP_INFO(get_logger(), "######################ANGULOS PARA HOME (angulares): Base=%.2f, Shoulder=%.2f, Elbow=%.2f, Gripper=%.2f ###########################",
                               angles_deg[0], angles_deg[1], angles_deg[2], angles_deg[3], angles_deg[4]);
 
                   // Publicar el JointState con los ángulos en grados
