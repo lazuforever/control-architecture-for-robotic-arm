@@ -394,7 +394,7 @@ bool moveRelative(const std::string& direction, moveit::planning_interface::Move
         js.name = {"base", "shoulder", "shoulderB", "elbow", "gripper"};
         js.position = final_deg;
         final_angles_pub_->publish(js);
-        
+
       }
       else
       {

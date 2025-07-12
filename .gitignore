@@ -1,0 +1,12 @@
+# Ignorar archivos comprimidos
+*.zip
+
+# Ignorar carpetas de compilación
+build/
+install/
+log/
+
+# Ignorar backups y archivos temporales
+*.bak
+*.swp
+*.tmp
