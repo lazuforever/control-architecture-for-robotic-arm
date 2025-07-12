@@ -61,18 +61,18 @@ class LaunchRequestHandler(AbstractRequestHandler):
 
     def handle(self, handler_input):
         # Preparar mensaje de bienvenida
-        speech_text = "Hola, Envia el comando "
+        speech_text = "Hola."
         # También, por ejemplo, incluir la posición actual recibida si existe
         if (alexa_node.latest_finger_pose is not None and
             len(alexa_node.latest_finger_pose.poses) >= 1):
             # Usamos el primer punto (puedes adaptar esto según tu necesidad)
             p = alexa_node.latest_finger_pose.poses[0].position
-            speech_text += " La primera posicion  detectada es X: {:.2f}, Y: {:.2f}, Z: {:.2f}.".format(p.x, p.y, p.z)
+            speech_text += " La primera posicion  detectada es. En equis: {:.2f}, en Ye: {:.2f}, en Zeta: {:.2f}.".format(p.x, p.y, p.z)
         handler_input.response_builder.speak(speech_text).set_card(
             SimpleCard("Online", speech_text)).set_should_end_session(False)
         
         p = alexa_node.latest_finger_pose.poses[1].position
-        speech_text += " La segunda  posición detectada es X: {:.2f}, Y: {:.2f}, Z: {:.2f}.".format(p.x, p.y, p.z)
+        speech_text += " La segunda  posición detectada es.  En equis: {:.2f}, en Ye: {:.2f}, en  Zeta: {:.2f}.".format(p.x, p.y, p.z)
         handler_input.response_builder.speak(speech_text).set_card(
             SimpleCard("Online", speech_text)).set_should_end_session(False)
 
@@ -104,11 +104,11 @@ class SleepIntentHandler(AbstractRequestHandler):
         return handler_input.request_envelope.request.intent.name == "SleepIntent"
 
     def handle(self, handler_input):
-        speech_text = "Ejecutando SleepIntent."
+        speech_text = "Listo, ejecutando modo UNIR PUNTOS."
         handler_input.response_builder.speak(speech_text).set_card(
             SimpleCard("Sleep", speech_text)).set_should_end_session(True)
         goal = ArduinobotTask.Goal()
-        goal.task_number = 2
+        goal.task_number = 3
         alexa_node.action_client.send_goal_async(goal)
         return handler_input.response_builder.response
 

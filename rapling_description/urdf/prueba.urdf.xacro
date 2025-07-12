@@ -295,7 +295,7 @@
     <joint name="world_to_camera" type="fixed">
         <parent link="base_link" />
         <child link="camera" />
-        <origin  rpy="0 6.28 0" xyz="0.0 0.21 0.34" />
+        <origin  rpy="0 6.28 0" xyz="-0.21 0.0 0.34" />
     </joint>
 
     <link name="camera">
@@ -305,7 +305,8 @@
            <mesh
           filename="package://rapling_description/meshes/pi_camera.STL" scale="0.001 0.001 0.001" />
         </geometry>
-      
+
+
         </visual>
     </link>
 

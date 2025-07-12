@@ -13,9 +13,15 @@
     <joint name="joint_link_4" value="0.0"/>
   </group_state>
 
+  <group_state name="home1" group="arm">
+    <joint name="joint_link_1" value="1.57"/>
+    <joint name="joint_link_2" value="0.523"/>
+    <joint name="joint_link_3" value="-0.47"/>
+    <joint name="joint_link_4" value="-0.95"/>
+  </group_state>
 
     <group_state name="home2" group="arm">
-    <joint name="joint_link_1" value="1.57"/>
+    <joint name="joint_link_1" value="4"/>
     <joint name="joint_link_2" value="1.57"/>
     <joint name="joint_link_3" value="0.0"/>
     <joint name="joint_link_4" value="0.0"/>

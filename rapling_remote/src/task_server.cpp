@@ -67,9 +67,7 @@ namespace rapling_remote
     std::vector<std::string> trajectory_directions_;
 
     // ---- callbacks básicos ----
-    rclcpp_action::GoalResponse goalCallback(
-        const rclcpp_action::GoalUUID &,
-        std::shared_ptr<const rapling_msgs::action::ArduinobotTask::Goal> goal)
+    rclcpp_action::GoalResponse goalCallback(const rclcpp_action::GoalUUID &,std::shared_ptr<const rapling_msgs::action::ArduinobotTask::Goal> goal)
     {
       RCLCPP_INFO(get_logger(), "Received goal request with task number %d", goal->task_number);
       return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
@@ -396,6 +394,107 @@ bool moveRelative(const std::string& direction, moveit::planning_interface::Move
         final_angles_pub_->publish(js);
 
       }
+      else if (task == 3)
+      {
+        // 1) Verificar dos poses
+        if (latest_finger_pose_array_.poses.size() != 2) {
+          RCLCPP_ERROR(get_logger(), "Se requieren 2 poses en 'finger_poses'");
+          result->success = false;
+          return goal_handle->abort(result);
+        }
+
+        // 2) Extraer puntos
+        auto p1 = latest_finger_pose_array_.poses[0].position;
+        auto p2 = latest_finger_pose_array_.poses[1].position;
+
+        // 3) Visualizar trayectoria plana
+        visualization_msgs::msg::Marker m;
+        m.header.frame_id = "world";
+        m.header.stamp = now();
+        m.ns = "finger_trajectory";
+        m.id = 0;
+        m.type = m.LINE_STRIP;
+        m.action = m.ADD;
+        m.scale.x = 0.01;  m.color.g = 1.0;  m.color.a = 1.0;
+        m.points = { p1, p2 };
+        marker_pub_->publish(m);
+
+        // 4) Llevar primero a posición HOME (opcional)
+        {
+          moveit::planning_interface::MoveGroupInterface::Plan plan_home;
+          std::vector<double> home_joints = {1.57, 0.523, -0.47, -0.95};
+          arm_move_group.setJointValueTarget(home_joints);
+          if (arm_move_group.plan(plan_home) == moveit::core::MoveItErrorCode::SUCCESS) {
+            arm_move_group.execute(plan_home);
+          } else {
+            RCLCPP_ERROR(get_logger(), "Plan falló para HOME inicial");
+          }
+        }
+
+        // 5) Generar trayectoria cartesiana de p1 a p2
+        std::vector<geometry_msgs::msg::Pose> waypoints;
+        // partimos de la pose actual pero cambiamos sólo la posición:
+        auto start_pose = arm_move_group.getCurrentPose().pose;
+        start_pose.position = p1;
+        waypoints.push_back(start_pose);
+
+        geometry_msgs::msg::Pose target_pose = start_pose;
+        target_pose.position = p2;
+        waypoints.push_back(target_pose);
+
+        moveit_msgs::msg::RobotTrajectory trajectory;
+        const double eef_step = 0.01;      // resolución 1 cm
+        const double jump_threshold = 0.0; // deshabilita salto de articulaciones
+        double fraction = arm_move_group.computeCartesianPath(
+          waypoints, eef_step, jump_threshold, trajectory);
+
+        if (fraction < 0.99) {
+          RCLCPP_ERROR(get_logger(), "Sólo se pudo computar %.2f%% de la trayectoria cartesiana", fraction * 100.0);
+          result->success = false;
+          return goal_handle->abort(result);
+        }
+
+        // 6) Ejecutar la trayectoria cartesiana completa
+        arm_move_group.execute(trajectory);
+
+        // 7) Publicar ángulos finales de PLACE
+        {
+          const auto& final_joints = arm_move_group.getCurrentJointValues();
+          auto angles_deg = convertRadiansToDegrees(final_joints);
+
+          RCLCPP_INFO(get_logger(),
+            "Ángulos PLACE (rad): Base=%.2f, Sh=%.2f, El=%.2f, Gr=%.2f",
+            final_joints[0], final_joints[1], final_joints[2], final_joints[3]);
+          RCLCPP_INFO(get_logger(),
+            "Ángulos PLACE (deg): Base=%.2f, Sh=%.2f, El=%.2f, Gr=%.2f",
+            angles_deg[0], angles_deg[1], angles_deg[2], angles_deg[3]);
+
+          sensor_msgs::msg::JointState js;
+          js.header.stamp = now();
+          js.name     = {"base", "shoulder", "shoulderB", "elbow", "gripper"};
+          js.position = angles_deg;
+          final_angles_pub_->publish(js);
+        }
+
+        // 8) Volver a HOME final (opcional)
+        {
+          moveit::planning_interface::MoveGroupInterface::Plan plan_end;
+          std::vector<double> end_joints = {0.0, 0.0, 0.0, 0.0};
+          arm_move_group.setJointValueTarget(end_joints);
+          if (arm_move_group.plan(plan_end) == moveit::core::MoveItErrorCode::SUCCESS) {
+            arm_move_group.execute(plan_end);
+          } else {
+            RCLCPP_ERROR(get_logger(), "Plan falló para HOME final");
+          }
+        }
+
+        // 9) Limpiar cualquier restricción pendiente
+        arm_move_group.clearPathConstraints();
+
+        RCLCPP_INFO(get_logger(), "Task 3 completado con trayectoria cartesiana");
+      }
+
+          
       else
       {
         RCLCPP_ERROR(get_logger(), "Task number %d no implementado", task);
