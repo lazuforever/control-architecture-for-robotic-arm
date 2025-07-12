@@ -88,16 +88,19 @@ namespace rapling_remote
       std::thread{ std::bind(&TaskServer::execute, this, _1), goal_handle }.detach();
     }
 
-    void directionCallback(const std_msgs::msg::String::SharedPtr msg)
-    {
-      static const std::set<std::string> valid = {"Izquierda","Derecha","Adelante","Atras","Arriba","Abajo"};
-      if (trajectory_directions_.empty() && valid.count(msg->data))
-      {
-        trajectory_directions_.push_back(msg->data);
-        RCLCPP_INFO(get_logger(), "Comando recibido: '%s'", msg->data.c_str());
-        // envía task 0 si quieres reutilizar lógica de dirección
-      }
-    }
+void directionCallback(const std_msgs::msg::String::SharedPtr msg)
+{
+  static const std::set<std::string> valid = {"Izquierda","Derecha","Adelante","Atras","Arriba","Abajo"};
+  if (valid.count(msg->data))
+  {
+    trajectory_directions_.push_back(msg->data);
+    RCLCPP_INFO(get_logger(), "Comando recibido: '%s'. Enviando goal task 2...", msg->data.c_str());
+
+    auto goal_msg = rapling_msgs::action::ArduinobotTask::Goal();
+    goal_msg.task_number = 2;
+    action_client_->async_send_goal(goal_msg);
+  }
+}
 
     void fingerPoseCallback(const geometry_msgs::msg::PoseArray::SharedPtr msg)
     {
@@ -137,6 +140,28 @@ namespace rapling_remote
 
         return degrees;
     }
+
+bool moveRelative(const std::string& direction, moveit::planning_interface::MoveGroupInterface& arm_move_group)
+{
+  geometry_msgs::msg::PoseStamped current_pose = arm_move_group.getCurrentPose();
+  geometry_msgs::msg::Point p = current_pose.pose.position;
+
+  const double step = 0.02; // 2 cm
+
+  if (direction == "Derecha")        p.x += step;
+  else if (direction == "Izquierda") p.x -= step;
+  else if (direction == "Adelante")  p.y += step;
+  else if (direction == "Atras")     p.y -= step;
+  else if (direction == "Arriba")    p.z += step;
+  else if (direction == "Abajo")     p.z -= step;
+  else {
+    RCLCPP_WARN(get_logger(), "Dirección no válida: %s", direction.c_str());
+    return false;
+  }
+
+  arm_move_group.setPositionTarget(p.x, p.y, p.z);
+  return arm_move_group.move() == moveit::core::MoveItErrorCode::SUCCESS;
+}
 
     // ---- lógica principal ----
     void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<rapling_msgs::action::ArduinobotTask>> goal_handle)
@@ -340,7 +365,37 @@ namespace rapling_remote
         // Limpiar restricción
         arm_move_group.clearPathConstraints();
       }
+      else if (task == 2)
+      {
+        if (trajectory_directions_.empty())
+        {
+          RCLCPP_ERROR(get_logger(), "No hay dirección recibida. Abortando.");
+          result->success = false;
+          return goal_handle->abort(result);
+        }
 
+        std::string direction = trajectory_directions_.back();
+        trajectory_directions_.clear(); // Limpiar para futuros usos
+
+        RCLCPP_INFO(get_logger(), "Ejecutando movimiento hacia: %s", direction.c_str());
+
+        if (!moveRelative(direction, arm_move_group))
+        {
+          result->success = false;
+          return goal_handle->abort(result);
+        }
+
+        // Publicar ángulos finales
+        auto final_state = arm_move_group.getCurrentJointValues();
+        std::vector<double> final_deg = convertRadiansToDegrees(final_state);
+
+        sensor_msgs::msg::JointState js;
+        js.header.stamp = now();
+        js.name = {"base", "shoulder", "shoulderB", "elbow", "gripper"};
+        js.position = final_deg;
+        final_angles_pub_->publish(js);
+        
+      }
       else
       {
         RCLCPP_ERROR(get_logger(), "Task number %d no implementado", task);
