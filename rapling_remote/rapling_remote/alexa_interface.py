@@ -67,12 +67,12 @@ class LaunchRequestHandler(AbstractRequestHandler):
             len(alexa_node.latest_finger_pose.poses) >= 1):
             # Usamos el primer punto (puedes adaptar esto según tu necesidad)
             p = alexa_node.latest_finger_pose.poses[0].position
-            speech_text += " La primera posicion  detectada es. En equis: {:.2f}, en Ye: {:.2f}, en Zeta: {:.2f}.".format(p.x, p.y, p.z)
+            speech_text += " La primera posicion  detectada es. En equis: {:.2f} centimetros , en Ye: {:.2f} centrimetros, en Zeta: {:.2f} centimetros.".format(p.x*100, p.y*100, p.z*100)
         handler_input.response_builder.speak(speech_text).set_card(
             SimpleCard("Online", speech_text)).set_should_end_session(False)
         
         p = alexa_node.latest_finger_pose.poses[1].position
-        speech_text += " La segunda  posición detectada es.  En equis: {:.2f}, en Ye: {:.2f}, en  Zeta: {:.2f}.".format(p.x, p.y, p.z)
+        speech_text += " La segunda  posición detectada es.  En equis: {:.2f} centimetros, en Ye: {:.2f} centimetros, en  Zeta: {:.2f} Centimetros.".format(p.x*100, p.y*100, p.z*100)
         handler_input.response_builder.speak(speech_text).set_card(
             SimpleCard("Online", speech_text)).set_should_end_session(False)
 
@@ -134,7 +134,7 @@ class AllExceptionHandler(AbstractExceptionHandler):
         handler_input.response_builder.speak(speech).ask(speech)
         # Enviar por ejemplo otro goal en caso de error
         goal = ArduinobotTask.Goal()
-        goal.task_number = 2
+        goal.task_number = 0
         alexa_node.action_client.send_goal_async(goal)
         return handler_input.response_builder.response
 

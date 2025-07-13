@@ -70,6 +70,8 @@ namespace rapling_remote
     rclcpp_action::GoalResponse goalCallback(const rclcpp_action::GoalUUID &,std::shared_ptr<const rapling_msgs::action::ArduinobotTask::Goal> goal)
     {
       RCLCPP_INFO(get_logger(), "Received goal request with task number %d", goal->task_number);
+
+      
       return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
     }
 
@@ -80,11 +82,39 @@ namespace rapling_remote
       return rclcpp_action::CancelResponse::ACCEPT;
     }
 
-    void acceptedCallback(
-       const std::shared_ptr<rclcpp_action::ServerGoalHandle<rapling_msgs::action::ArduinobotTask>> goal_handle)
-    {
-      std::thread{ std::bind(&TaskServer::execute, this, _1), goal_handle }.detach();
-    }
+void acceptedCallback(
+  const std::shared_ptr<rclcpp_action::ServerGoalHandle<
+      rapling_msgs::action::ArduinobotTask>> goal_handle)
+{
+  // 1) Llevar el brazo a la pose llamada "home1"
+  moveit::planning_interface::MoveGroupInterface arm_move_group(
+      shared_from_this(), "arm");  // usa este nodo
+
+  arm_move_group.setNamedTarget("home1");
+  moveit::planning_interface::MoveGroupInterface::Plan home_plan;
+
+  bool ok_home =
+      (arm_move_group.plan(home_plan) ==
+       moveit::core::MoveItErrorCode::SUCCESS);  // evita warning por "deprecated"
+
+  if (ok_home) {
+    arm_move_group.execute(home_plan);
+    RCLCPP_INFO(get_logger(),
+                "Pose 'home1' alcanzada. Lanzando hilo execute().");
+
+    // 2) Si todo salió bien, lanza la ejecución normal
+    std::thread(&TaskServer::execute, this, goal_handle).detach();
+  } else {
+    RCLCPP_ERROR(get_logger(),
+                 "No se pudo planificar a 'home1'. Abortando goal.");
+
+    // 3) Abortar el goal porque falló el pre‑movimiento
+    auto result = std::make_shared<
+        rapling_msgs::action::ArduinobotTask::Result>();
+    result->success = false;
+    goal_handle->abort(result);
+  }
+}
 
 void directionCallback(const std_msgs::msg::String::SharedPtr msg)
 {
@@ -110,13 +140,12 @@ void directionCallback(const std_msgs::msg::String::SharedPtr msg)
     std::vector<double> convertRadiansToDegrees(const std::vector<double>& radians) {
         std::vector<double> degrees;
         degrees.reserve(radians.size() + 1);
-
         for (size_t i = 0; i < radians.size(); ++i) {
             double angle_deg = 0.0;
 
             switch (i) {
                 case 0:
-                    angle_deg = (radians[i]  * (180.0 / M_PI )) + 150;
+                    angle_deg = (radians[i]  * (180.0 / M_PI )) ;
                     break;
                 case 1:
                     angle_deg = (-1*radians[i]  * (180.0 / M_PI )) + 240;
@@ -178,6 +207,8 @@ bool moveRelative(const std::string& direction, moveit::planning_interface::Move
 // ------------------------------------------------------------------
 if (task == 1)   // PICK AND PLACE
 {
+ 
+  
   sensor_msgs::msg::JointState msg;
   msg.name = {"base", "shoulder", "shoulderB", "elbow", "gripper"};
 
@@ -304,7 +335,7 @@ if (task == 1)   // PICK AND PLACE
 
     arm_move_group.execute(plan);
   }
-
+  arm_move_group.clearPathConstraints();
   //---------------------------------------------------------------
   // 7) MOVE → HOME final
   //---------------------------------------------------------------
