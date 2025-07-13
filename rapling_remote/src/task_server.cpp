@@ -173,197 +173,166 @@ bool moveRelative(const std::string& direction, moveit::planning_interface::Move
 
       int task = goal_handle->get_goal()->task_number;
 
-      if (task == 1)
-      {
-        std::vector<double> arm_joint_goal;
+     // ------------------------------------------------------------------
+// TASK 1  →  Pick & Place con constraints y seed actual
+// ------------------------------------------------------------------
+if (task == 1)   // PICK AND PLACE
+{
+  sensor_msgs::msg::JointState msg;
+  msg.name = {"base", "shoulder", "shoulderB", "elbow", "gripper"};
 
-        // 1) Verificar dos poses
-        if (latest_finger_pose_array_.poses.size() != 2)
-        {
-          RCLCPP_ERROR(get_logger(), "Se requieren 2 poses en 'finger_poses'");
-          result->success = false;
-          return goal_handle->abort(result);
-        }
+  //---------------------------------------------------------------
+  // 1) Verificar que existan exactamente dos poses
+  //---------------------------------------------------------------
+  if (latest_finger_pose_array_.poses.size() != 2) {
+    RCLCPP_ERROR(get_logger(), "Se requieren 2 poses en 'finger_poses'");
+    result->success = false;
+    return goal_handle->abort(result);
+  }
 
-        // 2) Extraer puntos
-        auto p1 = latest_finger_pose_array_.poses[0].position;
-        auto p2 = latest_finger_pose_array_.poses[1].position;
+  auto p1 = latest_finger_pose_array_.poses[0].position;
+  auto p2 = latest_finger_pose_array_.poses[1].position;
 
-        // 3) Visualizar trayectoria
-        visualization_msgs::msg::Marker m;
-        m.header.frame_id = "world";
-        m.header.stamp = now();
-        m.ns = "finger_trajectory";
-        m.id = 0;
-        m.type = m.LINE_STRIP;
-        m.action = m.ADD;
-        m.scale.x = 0.01;  m.color.g = 1.0;  m.color.a = 1.0;
-        m.points = { p1, p2 };
-        marker_pub_->publish(m);
+  //---------------------------------------------------------------
+  // 2) Visualizar línea entre p1 y p2
+  //---------------------------------------------------------------
+  visualization_msgs::msg::Marker m;
+  m.header.frame_id = "world";
+  m.header.stamp    = now();
+  m.ns   = "finger_trajectory";
+  m.id   = 0;
+  m.type = m.LINE_STRIP;
+  m.action    = m.ADD;
+  m.scale.x   = 0.01;
+  m.color.g   = 1.0;
+  m.color.a   = 1.0;
+  m.points    = {p1, p2};
+  marker_pub_->publish(m);
 
-        // 4) Definir JointConstraint para "codo arriba"
-        moveit_msgs::msg::JointConstraint elbow_up;
-        elbow_up.joint_name      = "joint_link_3";  // AJUSTA al nombre real
-        elbow_up.position        = 1.0;               // radianes, ángulo ejemplo
-        elbow_up.tolerance_below = 0.05;
-        elbow_up.tolerance_above = 0.05;
-        elbow_up.weight          = 1.0;
-        moveit_msgs::msg::Constraints path_c;
-        path_c.joint_constraints.push_back(elbow_up);
+  //---------------------------------------------------------------
+  // 3) Constraints: base ±90° y codo‑arriba
+  //---------------------------------------------------------------
+  const auto current_joints = arm_move_group.getCurrentJointValues();
 
-        // --- Mover a posición 1 ---
-        arm_move_group.setPositionTarget(p1.x, p1.y, p1.z);
-        {
-          moveit::planning_interface::MoveGroupInterface::Plan plan;
+  moveit_msgs::msg::JointConstraint base_limit;
+  base_limit.joint_name      = "joint_link_1";          // ← ajusta al nombre real
+  base_limit.position        = current_joints[0];       // posición actual
+  base_limit.tolerance_above = M_PI / 2;                // +90°
+  base_limit.tolerance_below = M_PI / 2;                // -90°
+  base_limit.weight          = 1.0;
 
-          if (arm_move_group.plan(plan) != moveit::core::MoveItErrorCode::SUCCESS)
-          {
-            RCLCPP_ERROR(get_logger(), "Plan failed para posición 1");
-            arm_move_group.clearPathConstraints();
-            result->success = false;
-            return goal_handle->abort(result);
-          }
+  moveit_msgs::msg::JointConstraint elbow_up;
+  elbow_up.joint_name      = "joint_link_3";            // ← ajusta al nombre real
+  elbow_up.position        = -0.47;                       // codo‑arriba aproximado
+  elbow_up.tolerance_above = -2.0;                  // +30° (0.52 rad)
+  elbow_up.tolerance_below = 0.30;
+  elbow_up.weight          = 1.0;
 
-          // Obtener los ángulos finales de la trayectoria
-          const auto& trajectory_points = plan.trajectory_.joint_trajectory.points;
-          if (!trajectory_points.empty())
-          {
-            const auto& final_angles = trajectory_points.back().positions;
+  moveit_msgs::msg::Constraints path_constraints;
+  path_constraints.joint_constraints = {base_limit, elbow_up};
 
-            // Convertir radianes a grados y aplicar ajustes
-            std::vector<double> angles_deg = convertRadiansToDegrees(final_angles);
+  // Activar constraints para todo el ciclo Pick‑Place
+  arm_move_group.setPathConstraints(path_constraints);
 
-            RCLCPP_INFO(get_logger(), "######################ANGULOS PARA PICK (radianes): Base=%.2f, Shoulder=%.2f, Elbow=%.2f, Gripper=%.2f ###########################",
-                        final_angles[0], final_angles[1], final_angles[2], final_angles[3]);
-            RCLCPP_INFO(get_logger(), "######################ANGULOS PARA PICK (Angular): Base=%.2f, Shoulder=%.2f, Elbow=%.2f, Gripper=%.2f ###########################",
-                        angles_deg[0], angles_deg[1], angles_deg[2], angles_deg[3], angles_deg[4]);
+  //---------------------------------------------------------------
+  // 4) MOVE → P1  (Pick)
+  //---------------------------------------------------------------
+  arm_move_group.setStartStateToCurrentState();
+  arm_move_group.setPositionTarget(p1.x, p1.y, p1.z);
 
-            // Publicar el JointState con los ángulos en grados
-            msg.header.stamp = now();
-            msg.name = {"base", "shoulder", "shoulderB", "elbow", "gripper"};
-            msg.position = angles_deg;
-            final_angles_pub_->publish(msg);
+  {
+    moveit::planning_interface::MoveGroupInterface::Plan plan;
+    if (arm_move_group.plan(plan) != moveit::core::MoveItErrorCode::SUCCESS) {
+      RCLCPP_ERROR(get_logger(), "Plan falló para posición 1");
+      arm_move_group.clearPathConstraints();
+      result->success = false;
+      return goal_handle->abort(result);
+    }
 
-            arm_joint_goal = {final_angles[0], final_angles[1], final_angles[2], final_angles[3]};
-            arm_move_group.setJointValueTarget(arm_joint_goal);
-            arm_move_group.move();
-          }
-        }
+    const auto& final_angles = plan.trajectory_.joint_trajectory.points.back().positions;
+    std::vector<double> angles_deg = convertRadiansToDegrees(final_angles);
 
-        // --- SEGUNDA ETAPA Moverse a la posición HOME ---
-        {
-          moveit::planning_interface::MoveGroupInterface::Plan plan;
-          std::vector<double> joint_goal = {-0.0, 0.0, -0.0, -0.0};
-          if (!arm_move_group.setJointValueTarget(joint_goal)) {
-              RCLCPP_ERROR(get_logger(), "Error al asignar joint goal");
-          }
+    msg.header.stamp = now();
+    msg.position     = angles_deg;
+    final_angles_pub_->publish(msg);
 
-          if (arm_move_group.plan(plan) == moveit::core::MoveItErrorCode::SUCCESS) {
-              const auto& trajectory_points = plan.trajectory_.joint_trajectory.points;
-              if (!trajectory_points.empty()) {
-                  const auto& final_angles = trajectory_points.back().positions;
+    arm_move_group.execute(plan);
+  }
 
-                  // Convertir radianes a grados y aplicar ajustes
-                  std::vector<double> angles_deg = convertRadiansToDegrees(final_angles);
+  //---------------------------------------------------------------
+  // 5) MOVE → HOME intermedio
+  //---------------------------------------------------------------
+  arm_move_group.setStartStateToCurrentState();
+  {
+    std::vector<double> home = {1.57, 0.523, -0.47, -0.95};   // ajusta si es necesario
+    arm_move_group.setJointValueTarget(home);
 
-                  RCLCPP_INFO(get_logger(), "######################ANGULOS PARA HOME (radianes): Base=%.2f, Shoulder=%.2f, Elbow=%.2f, Gripper=%.2f ###########################",
-                              final_angles[0], final_angles[1], final_angles[2], final_angles[3]);
-                  RCLCPP_INFO(get_logger(), "######################ANGULOS PARA HOME (angulares): Base=%.2f, Shoulder=%.2f, Elbow=%.2f, Gripper=%.2f ###########################",
-                              angles_deg[0], angles_deg[1], angles_deg[2], angles_deg[3], angles_deg[4]);
+    moveit::planning_interface::MoveGroupInterface::Plan plan;
+    if (arm_move_group.plan(plan) == moveit::core::MoveItErrorCode::SUCCESS) {
+      const auto& final_angles = plan.trajectory_.joint_trajectory.points.back().positions;
+      msg.header.stamp = now();
+      msg.position     = convertRadiansToDegrees(final_angles);
+      final_angles_pub_->publish(msg);
 
-                  // Publicar el JointState con los ángulos en grados
-                  msg.header.stamp = now();
-                  msg.name = {"base", "shoulder", "shoulderB", "elbow", "gripper"};
-                  msg.position = angles_deg;
-                  final_angles_pub_->publish(msg);
-              }
+      arm_move_group.execute(plan);
+    } else {
+      RCLCPP_ERROR(get_logger(), "Plan falló para HOME intermedio");
+    }
+  }
 
-              arm_move_group.execute(plan);
-          } 
-          else {
-              RCLCPP_ERROR(get_logger(), "Plan falló para joint_goal");
-          }
-        }
+  //---------------------------------------------------------------
+  // 6) MOVE → P2  (Place)
+  //---------------------------------------------------------------
+  arm_move_group.setStartStateToCurrentState();
+  arm_move_group.setPositionTarget(p2.x, p2.y, p2.z);
 
-        // --- Mover a posición 2 ---
-        arm_move_group.setPositionTarget(p2.x, p2.y, p2.z);
-        {
-          moveit::planning_interface::MoveGroupInterface::Plan plan;
-          if (arm_move_group.plan(plan) != moveit::core::MoveItErrorCode::SUCCESS)
-          {
-            RCLCPP_ERROR(get_logger(), "Plan failed para posición 2");
-            arm_move_group.clearPathConstraints();
-            result->success = false;
-            return goal_handle->abort(result);
-          }
+  {
+    moveit::planning_interface::MoveGroupInterface::Plan plan;
+    if (arm_move_group.plan(plan) != moveit::core::MoveItErrorCode::SUCCESS) {
+      RCLCPP_ERROR(get_logger(), "Plan falló para posición 2");
+      arm_move_group.clearPathConstraints();
+      result->success = false;
+      return goal_handle->abort(result);
+    }
 
-          const auto& trajectory_points = plan.trajectory_.joint_trajectory.points;
+    const auto& final_angles = plan.trajectory_.joint_trajectory.points.back().positions;
+    std::vector<double> angles_deg = convertRadiansToDegrees(final_angles);
 
-          if (!trajectory_points.empty()) 
-          {
-            const auto& final_angles = trajectory_points.back().positions;
+    msg.header.stamp = now();
+    msg.position     = angles_deg;
+    final_angles_pub_->publish(msg);
 
-            // Convertir radianes a grados y aplicar ajustes
-            std::vector<double> angles_deg = convertRadiansToDegrees(final_angles);
+    arm_move_group.execute(plan);
+  }
 
-            RCLCPP_INFO(get_logger(), "######################ANGULOS PARA PLACE (radianes): Base=%.2f, Shoulder=%.2f, Elbow=%.2f, Gripper=%.2f ###########################",
-                        final_angles[0], final_angles[1], final_angles[2], final_angles[3]);
-            RCLCPP_INFO(get_logger(), "######################ANGULOS PARA PLACE (Angular): Base=%.2f, Shoulder=%.2f, Elbow=%.2f, Gripper=%.2f ###########################",
-                        angles_deg[0], angles_deg[1], angles_deg[2], angles_deg[3], angles_deg[4]);
+  //---------------------------------------------------------------
+  // 7) MOVE → HOME final
+  //---------------------------------------------------------------
+  arm_move_group.setStartStateToCurrentState();
+  {
+    std::vector<double> home = {1.57, 0.523, -0.47, -0.95};   // mismo HOME
+    arm_move_group.setJointValueTarget(home);
 
-            // Publicar el JointState con los ángulos en grados
-            msg.header.stamp = now();
-            msg.name = {"base", "shoulder", "shoulderB", "elbow", "gripper"};
-            msg.position = angles_deg;
-            final_angles_pub_->publish(msg);
+    moveit::planning_interface::MoveGroupInterface::Plan plan;
+    if (arm_move_group.plan(plan) == moveit::core::MoveItErrorCode::SUCCESS) {
+      const auto& final_angles = plan.trajectory_.joint_trajectory.points.back().positions;
+      msg.header.stamp = now();
+      msg.position     = convertRadiansToDegrees(final_angles);
+      final_angles_pub_->publish(msg);
 
-            arm_joint_goal = {final_angles[0], final_angles[1], final_angles[2], final_angles[3]};
-            arm_move_group.setJointValueTarget(arm_joint_goal);   
-            arm_move_group.move();
-          }
-        }
+      arm_move_group.execute(plan);
+    } else {
+      RCLCPP_ERROR(get_logger(), "Plan falló para HOME final");
+    }
+  }
 
-        // --- ÚLTIMA ETAPA Moverse a la posición HOME ---
-        {
-          moveit::planning_interface::MoveGroupInterface::Plan plan;
-          std::vector<double> joint_goal = {-0.0, 0.0, -0.0, -0.0};
-          if (!arm_move_group.setJointValueTarget(joint_goal)) {
-              RCLCPP_ERROR(get_logger(), "Error al asignar joint goal");
-          }
+  //---------------------------------------------------------------
+  // 8) Limpiar constraints y finalizar
+  //---------------------------------------------------------------
+  arm_move_group.clearPathConstraints();
+}
 
-          if (arm_move_group.plan(plan) == moveit::core::MoveItErrorCode::SUCCESS) {
-              const auto& trajectory_points = plan.trajectory_.joint_trajectory.points;
-              if (!trajectory_points.empty()) {
-                  const auto& final_angles = trajectory_points.back().positions;
-
-                  // Convertir radianes a grados y aplicar ajustes para robot real.
-                  std::vector<double> angles_deg = convertRadiansToDegrees(final_angles);
-
-                  RCLCPP_INFO(get_logger(), "######################ANGULOS PARA home  (radianes): Base=%.2f, Shoulder=%.2f, Elbow=%.2f, Gripper=%.2f ###########################",
-                              final_angles[0], final_angles[1], final_angles[2], final_angles[3]);
-                  RCLCPP_INFO(get_logger(), "######################ANGULOS PARA HOME (angulares): Base=%.2f, Shoulder=%.2f, Elbow=%.2f, Gripper=%.2f ###########################",
-                              angles_deg[0], angles_deg[1], angles_deg[2], angles_deg[3], angles_deg[4]);
-
-                  // Publicar el JointState con los ángulos en grados
-                  msg.header.stamp = now();
-                  msg.name = {"base", "shoulder", "shoulderB", "elbow", "gripper"};
-                  msg.position = angles_deg;
-                  final_angles_pub_->publish(msg);
-              }
-
-              arm_move_group.execute(plan);
-          } 
-          else {
-              RCLCPP_ERROR(get_logger(), "Plan falló para joint_goal");
-          }
-
-
-        }
-        
-        // Limpiar restricción
-        arm_move_group.clearPathConstraints();
-      }
-      else if (task == 2)
+      else if (task == 2) // TELEOPERACIÒN 
       {
         if (trajectory_directions_.empty())
         {
@@ -394,7 +363,7 @@ bool moveRelative(const std::string& direction, moveit::planning_interface::Move
         final_angles_pub_->publish(js);
 
       }
-      else if (task == 3)
+      else if (task == 3) // UNIR PUNTOS CON TRAZADO CARTESIANO
       {
         // 1) Verificar dos poses
         if (latest_finger_pose_array_.poses.size() != 2) {
