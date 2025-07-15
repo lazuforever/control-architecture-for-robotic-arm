@@ -145,11 +145,11 @@ void directionCallback(const std_msgs::msg::String::SharedPtr msg)
 
             switch (i) {
                 case 0:
-                    angle_deg = (radians[i]  * (180.0 / M_PI )) ;
+                    angle_deg = (radians[i]  * (180.0 / M_PI ))+23 ;
                     break;
                 case 1:
-                    angle_deg = (-1*radians[i]  * (180.0 / M_PI )) + 240;
-                    degrees.push_back(angle_deg); // Añadir el valor ajustado
+                    //angle_deg = (-1*radians[i]  * (180.0 / M_PI )) + 240;
+                    //degrees.push_back(angle_deg); // Añadir el valor ajustado
                     angle_deg = (radians[i]  * (180.0 / M_PI )) + 60;
                     break;
                 case 2:
@@ -469,7 +469,7 @@ if (task == 1)   // PICK AND PLACE
             "Ángulos PLACE (deg): Base=%.2f, Sh=%.2f, El=%.2f, Gr=%.2f",
             angles_deg[0], angles_deg[1], angles_deg[2], angles_deg[3]);
 
-          sensor_msgs::msg::JointState js;
+            sensor_msgs::msg::JointState js;
           js.header.stamp = now();
           js.name     = {"base", "shoulder", "shoulderB", "elbow", "gripper"};
           js.position = angles_deg;
@@ -494,7 +494,6 @@ if (task == 1)   // PICK AND PLACE
         RCLCPP_INFO(get_logger(), "Task 3 completado con trayectoria cartesiana");
       }
 
-          
       else
       {
         RCLCPP_ERROR(get_logger(), "Task number %d no implementado", task);

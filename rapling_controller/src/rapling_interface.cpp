@@ -201,7 +201,7 @@ hardware_interface::return_type RaplingInterface::write(const rclcpp::Time &time
 
 
   std::string msg;
-  int base = static_cast<int>(((position_commands_.at(0) )) * (180/M_PI));
+  int base = static_cast<int>(((position_commands_.at(0) )) * (180/M_PI)+23);
   msg.append("b");
   msg.append(std::to_string(base));
   msg.append(",");
