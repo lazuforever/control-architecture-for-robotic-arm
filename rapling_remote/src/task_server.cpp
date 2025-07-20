@@ -2,7 +2,6 @@
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <rclcpp_components/register_node_macro.hpp>
 #include "rapling_msgs/action/arduinobot_task.hpp"
-
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit_msgs/msg/constraints.hpp>
 #include <moveit_msgs/msg/joint_constraint.hpp>
@@ -493,6 +492,69 @@ if (task == 1)   // PICK AND PLACE
 
         RCLCPP_INFO(get_logger(), "Task 3 completado con trayectoria cartesiana");
       }
+else if (task == 4) // CÍRCULO VISUAL
+{
+  RCLCPP_INFO(get_logger(), "Dibujando un círculo en RViz...");
+
+  visualization_msgs::msg::Marker circle;
+  circle.header.frame_id = "world";
+  circle.header.stamp = now();
+  circle.ns = "circle_path";
+  circle.id = 1;
+  circle.type = visualization_msgs::msg::Marker::LINE_STRIP;
+  circle.action = visualization_msgs::msg::Marker::ADD;
+  circle.scale.x = 0.005;
+  circle.color.r = 0.0;
+  circle.color.g = 0.0;
+  circle.color.b = 1.0;
+  circle.color.a = 1.0;
+
+  const double radius = 0.05; // 5 cm
+  const int num_points = 100;
+  const double cx = -0.19; // centro X
+  const double cy = -0.0; // centro Y
+  const double cz = 0.05; // centro Z
+
+  for (int i = 0; i <= num_points; ++i) {
+    double theta = 2 * M_PI * i / num_points;
+    geometry_msgs::msg::Point pt;
+    pt.x = cx + radius * cos(theta);
+    pt.y = cy + radius * sin(theta);
+    pt.z = cz;
+    circle.points.push_back(pt);
+  }
+
+  marker_pub_->publish(circle);
+  std::vector<geometry_msgs::msg::Pose> waypoints;
+
+geometry_msgs::msg::Pose start_pose = arm_move_group.getCurrentPose().pose;
+for (int i = 0; i <= num_points; ++i) {
+  double theta = 2 * M_PI * i / num_points;
+  geometry_msgs::msg::Pose p = start_pose;
+  p.position.x = cx + radius * cos(theta);
+  p.position.y = cy + radius * sin(theta);
+  p.position.z = cz;
+  waypoints.push_back(p);
+}
+
+moveit_msgs::msg::RobotTrajectory trajectory;
+const double eef_step = 0.005;
+const double jump_threshold = 0.0;
+double fraction = arm_move_group.computeCartesianPath(
+    waypoints, eef_step, jump_threshold, trajectory);
+
+if (fraction < 0.9) {
+  RCLCPP_ERROR(get_logger(), "Trayectoria incompleta: %.2f%%", fraction * 100);
+  result->success = false;
+  return goal_handle->abort(result);
+}
+
+arm_move_group.execute(trajectory);
+  result->success = true;
+  goal_handle->succeed(result);
+  return;
+
+}
 
           
       else

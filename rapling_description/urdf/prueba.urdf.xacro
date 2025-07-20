@@ -311,6 +311,29 @@
     </link>
 
 
+<link name="obstacle_1">
+  <visual>
+    <origin xyz="-0.3 -0.2 -0.05" rpy="0 0 0"/>
+    <geometry>
+      <box size="0.1 0.1 0.1"/> <!-- Cubo de 10 cm -->
+    </geometry>
+    <material name="red">
+      <color rgba="1 0 0 1"/> <!-- Color rojo -->
+    </material>
+  </visual>
+  <collision>
+    <origin xyz="-0.3 -0.2 0.05" rpy="0 0 0"/>
+    <geometry>
+      <box size="0.05 0.05 0.05"/>
+    </geometry>
+  </collision>
+</link>
+
+<joint name="obstacle_1_joint" type="fixed">
+  <parent link="world"/>
+  <child link="obstacle_1"/>
+  <origin xyz="0 0 0" rpy="0 0 0"/>
+</joint>
 
 
 </robot>
