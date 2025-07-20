@@ -54,7 +54,7 @@ class FingerDetector(Node):
         self.fy = 535.976126    # Distancia focal y
         self.cx = 268.669021   # Centro óptico x
         self.cy = 289.272643   # Centro óptico y
-        self.Z = -0.40         # Distancia estimada
+        self.Z = -0.475         # Distancia estimada
         
         # Variables de estado
         self.state = "WAITING_FIRST_POINT"

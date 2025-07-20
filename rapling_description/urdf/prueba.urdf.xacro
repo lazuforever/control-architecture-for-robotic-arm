@@ -74,7 +74,7 @@
 <joint name="table_joint" type="fixed">
   <parent link="world"/>
   <child link="table"/>
-  <origin xyz="0 0 -0.085" rpy="0 0 0"/> <!-- Posición de la mesa (en el origen) -->
+  <origin xyz="0 0 -0.09" rpy="0 0 0"/> <!-- Posición de la mesa (en el origen) -->
 </joint>
 
   <link
@@ -295,7 +295,7 @@
     <joint name="world_to_camera" type="fixed">
         <parent link="base_link" />
         <child link="camera" />
-        <origin  rpy="0 6.28 0" xyz="-0.21 0.0 0.34" />
+        <origin  rpy="0 6.28 0" xyz="-0.21 0.0 0.475" />
     </joint>
 
     <link name="camera">
