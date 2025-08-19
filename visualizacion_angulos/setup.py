@@ -19,6 +19,7 @@ setup(
     entry_points={
         'console_scripts': [
             'angle_plotter = visualizacion_angulos.plotter_node:main',
+            'perfil_trayectoria = visualizacion_angulos.perfil_trayectoria:main',
         ],
     },
 )

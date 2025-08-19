@@ -130,7 +130,7 @@ class AllExceptionHandler(AbstractExceptionHandler):
         return True
 
     def handle(self, handler_input, exception):
-        speech = "Hmm, I don't know that. Can you please say it again?"
+        speech = "Puedes repetir el comando"
         handler_input.response_builder.speak(speech).ask(speech)
         # Enviar por ejemplo otro goal en caso de error
         goal = ArduinobotTask.Goal()

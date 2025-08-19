@@ -99,7 +99,7 @@ class FingerDetector(Node):
         else:                                                 # TF aún no listo
             world_txt = "W: N/A"
         cv2.putText(frame, world_txt,
-                    (int(self.cx)+5, int(self.cy)+15),        # justo debajo
+                    (int(self.cx)+5, int(self.cy)+25),        # justo debajo
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 1)
         # -------------------------------------------------------------------
 

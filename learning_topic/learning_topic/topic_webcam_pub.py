@@ -19,7 +19,7 @@ class ImagePublisher(Node):
         super().__init__(name)                                           # Inicialización de la clase base del nodo ROS2
         self.publisher_ = self.create_publisher(Image, 'image_raw', 10)  # Crea un publicador (tipo de mensaje, nombre del tema, longitud de la cola)
         self.timer = self.create_timer(0.1, self.timer_callback)         # Crea un temporizador que ejecuta la función de callback cada 0.1 segundos
-        self.cap = cv2.VideoCapture(2)                                   # Inicia la captura de video desde la cámara (dispositivo de cámara por defecto)
+        self.cap = cv2.VideoCapture(0)                                   # Inicia la captura de video desde la cámara (dispositivo de cámara por defecto)
         self.cv_bridge = CvBridge()                                      # Crea un objeto de conversión para transformar imágenes entre OpenCV y ROS
 
     def timer_callback(self):

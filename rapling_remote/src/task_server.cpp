@@ -1,12 +1,13 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <rclcpp_components/register_node_macro.hpp>
-#include "rapling_msgs/action/arduinobot_task.hpp"
+#include "rapling_msgs/action/raplin_task.hpp"
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit_msgs/msg/constraints.hpp>
 #include <moveit_msgs/msg/joint_constraint.hpp>
 #include "sensor_msgs/msg/joint_state.hpp"
-
+#include <trajectory_msgs/msg/joint_trajectory.hpp>
+#include <moveit/robot_trajectory/robot_trajectory.h>
 #include <geometry_msgs/msg/pose_array.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <visualization_msgs/msg/marker.hpp>
@@ -28,7 +29,7 @@ namespace rapling_remote
       RCLCPP_INFO(get_logger(), "Starting the Server");
 
       // 1) Action Server
-      action_server_ = rclcpp_action::create_server<rapling_msgs::action::ArduinobotTask>(
+      action_server_ = rclcpp_action::create_server<rapling_msgs::action::RaplinTask>(
           this, "task_server",
           std::bind(&TaskServer::goalCallback, this, _1, _2),
           std::bind(&TaskServer::cancelCallback, this, _1),
@@ -42,7 +43,7 @@ namespace rapling_remote
           "finger_poses", 10, std::bind(&TaskServer::fingerPoseCallback, this, _1));
 
       // 3) Cliente de acción (para pruebas internas)
-      action_client_ = rclcpp_action::create_client<rapling_msgs::action::ArduinobotTask>(
+      action_client_ = rclcpp_action::create_client<rapling_msgs::action::RaplinTask>(
           this, "task_server");
 
       // 4) Publicador de Marker
@@ -50,23 +51,30 @@ namespace rapling_remote
           "line_topic", 10);
 
       final_angles_pub_ = this->create_publisher<sensor_msgs::msg::JointState>("final_angles", 10);
+
+      planned_traj_pub_ = this->create_publisher<trajectory_msgs::msg::JointTrajectory>(
+          "/planned_trajectory", 10);
+
+
+
     }
 
   private:
     // ---- miembros ROS ----
-    rclcpp_action::Server<rapling_msgs::action::ArduinobotTask>::SharedPtr action_server_;
+    rclcpp_action::Server<rapling_msgs::action::RaplinTask>::SharedPtr action_server_;
     rclcpp::Subscription<std_msgs::msg::String>::SharedPtr direction_subscriber_;
     rclcpp::Subscription<geometry_msgs::msg::PoseArray>::SharedPtr finger_pose_subscriber_;
-    rclcpp_action::Client<rapling_msgs::action::ArduinobotTask>::SharedPtr action_client_;
+    rclcpp_action::Client<rapling_msgs::action::RaplinTask>::SharedPtr action_client_;
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr marker_pub_;
     rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr final_angles_pub_;
+    rclcpp::Publisher<trajectory_msgs::msg::JointTrajectory>::SharedPtr planned_traj_pub_;
 
     // almacenamiento de la última PoseArray
     geometry_msgs::msg::PoseArray latest_finger_pose_array_;
     std::vector<std::string> trajectory_directions_;
 
     // ---- callbacks básicos ----
-    rclcpp_action::GoalResponse goalCallback(const rclcpp_action::GoalUUID &,std::shared_ptr<const rapling_msgs::action::ArduinobotTask::Goal> goal)
+    rclcpp_action::GoalResponse goalCallback(const rclcpp_action::GoalUUID &,std::shared_ptr<const rapling_msgs::action::RaplinTask::Goal> goal)
     {
       RCLCPP_INFO(get_logger(), "Received goal request with task number %d", goal->task_number);
 
@@ -75,7 +83,7 @@ namespace rapling_remote
     }
 
     rclcpp_action::CancelResponse cancelCallback(
-        const std::shared_ptr<rclcpp_action::ServerGoalHandle<rapling_msgs::action::ArduinobotTask>>)
+        const std::shared_ptr<rclcpp_action::ServerGoalHandle<rapling_msgs::action::RaplinTask>>)
     {
       RCLCPP_INFO(get_logger(), "Received request to cancel goal");
       return rclcpp_action::CancelResponse::ACCEPT;
@@ -83,7 +91,7 @@ namespace rapling_remote
 
 void acceptedCallback(
   const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-      rapling_msgs::action::ArduinobotTask>> goal_handle)
+      rapling_msgs::action::RaplinTask>> goal_handle)
 {
   // 1) Llevar el brazo a la pose llamada "home1"
   moveit::planning_interface::MoveGroupInterface arm_move_group(
@@ -109,7 +117,7 @@ void acceptedCallback(
 
     // 3) Abortar el goal porque falló el pre‑movimiento
     auto result = std::make_shared<
-        rapling_msgs::action::ArduinobotTask::Result>();
+        rapling_msgs::action::RaplinTask::Result>();
     result->success = false;
     goal_handle->abort(result);
   }
@@ -123,7 +131,7 @@ void directionCallback(const std_msgs::msg::String::SharedPtr msg)
     trajectory_directions_.push_back(msg->data);
     RCLCPP_INFO(get_logger(), "Comando recibido: '%s'. Enviando goal task 2...", msg->data.c_str());
 
-    auto goal_msg = rapling_msgs::action::ArduinobotTask::Goal();
+    auto goal_msg = rapling_msgs::action::RaplinTask::Goal();
     goal_msg.task_number = 2;
     action_client_->async_send_goal(goal_msg);
   }
@@ -190,13 +198,13 @@ bool moveRelative(const std::string& direction, moveit::planning_interface::Move
 }
 
     // ---- lógica principal ----
-    void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<rapling_msgs::action::ArduinobotTask>> goal_handle)
+    void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<rapling_msgs::action::RaplinTask>> goal_handle)
     {
       sensor_msgs::msg::JointState msg;
       msg.header.stamp = this->now();
 
       RCLCPP_INFO(get_logger(), "Executing goal");
-      auto result = std::make_shared<rapling_msgs::action::ArduinobotTask::Result>();
+      auto result = std::make_shared<rapling_msgs::action::RaplinTask::Result>();
       auto arm_move_group = moveit::planning_interface::MoveGroupInterface(shared_from_this(), "arm");
 
       int task = goal_handle->get_goal()->task_number;
@@ -204,10 +212,8 @@ bool moveRelative(const std::string& direction, moveit::planning_interface::Move
      // ------------------------------------------------------------------
 // TASK 1  →  Pick & Place con constraints y seed actual
 // ------------------------------------------------------------------
-if (task == 1)   // PICK AND PLACE
-{
- 
-  
+      if (task == 1)   // PICK AND PLACE
+{ 
   sensor_msgs::msg::JointState msg;
   msg.name = {"base", "shoulder", "shoulderB", "elbow", "gripper"};
 
@@ -361,7 +367,6 @@ if (task == 1)   // PICK AND PLACE
   //---------------------------------------------------------------
   arm_move_group.clearPathConstraints();
 }
-
       else if (task == 2) // TELEOPERACIÒN 
       {
         if (trajectory_directions_.empty())
@@ -492,7 +497,7 @@ if (task == 1)   // PICK AND PLACE
 
         RCLCPP_INFO(get_logger(), "Task 3 completado con trayectoria cartesiana");
       }
-else if (task == 4) // CÍRCULO VISUAL
+      else if (task == 4) // CÍRCULO VISUAL
 {
   RCLCPP_INFO(get_logger(), "Dibujando un círculo en RViz...");
 
@@ -555,6 +560,39 @@ arm_move_group.execute(trajectory);
   return;
 
 }
+      else if ( task==5 ) // Puntos cartecianos fijos 
+{
+  RCLCPP_INFO(get_logger(), "Ejecutando tarea 5: Puntos cartesianos fijos");    
+       
+    // Establecer el estado inicial y objetivo de posición
+    arm_move_group.setStartStateToCurrentState();
+    arm_move_group.setPositionTarget(-0.256, -0.053, 0.046);
+
+    {
+        moveit::planning_interface::MoveGroupInterface::Plan plan;
+        if (arm_move_group.plan(plan) != moveit::core::MoveItErrorCode::SUCCESS) {
+            arm_move_group.clearPathConstraints();
+            result->success = false;
+            return goal_handle->abort(result);
+        }
+
+        // ✅ Ahora sí publicar la trayectoria ya generada
+        planned_traj_pub_->publish(plan.trajectory_.joint_trajectory);
+        RCLCPP_INFO(get_logger(), "Publicado JointTrajectory con %zu puntos",
+                    plan.trajectory_.joint_trajectory.points.size());
+
+        const auto& final_angles = plan.trajectory_.joint_trajectory.points.back().positions;
+        std::vector<double> angles_deg = convertRadiansToDegrees(final_angles);
+
+        arm_move_group.execute(plan);
+
+    }
+
+    result->success = true;
+    return goal_handle->succeed(result);
+}
+      
+
 
       else
       {
