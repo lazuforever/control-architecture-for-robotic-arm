@@ -81,9 +81,9 @@ class HandTracker(Node):
                         # Si la punta del índice está en la mitad superior del círculo → Z+
                         # Si está en la mitad inferior → Z-
                         if index_tip[1] < self.circle_center[1]:
-                            self.publish_z_direction("Arriba")
+                            self.publish_z_direction("Z+")
                         else:
-                            self.publish_z_direction("Abajo")
+                            self.publish_z_direction("Z-")
                 else:
                     current_pinch_state = "open"
                 self.last_pinch_state = current_pinch_state
@@ -130,9 +130,9 @@ class HandTracker(Node):
             dy = self.movement_history[-1][1] - self.movement_history[0][1]
             direction = None
             if abs(dx) > self.movement_threshold:
-                direction = "Derecha" if dx > 0 else "Izquierda"
+                direction = "X+" if dx > 0 else "X-"
             elif abs(dy) > self.movement_threshold:
-                direction = "Adelante" if dy > 0 else "Atras"
+                direction = "Y+" if dy > 0 else "Y-"
             
             if direction == self.last_direction:
                 self.consistent_frames += 1

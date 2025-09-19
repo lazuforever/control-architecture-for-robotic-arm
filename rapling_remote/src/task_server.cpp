@@ -72,6 +72,8 @@ namespace rapling_remote
     /* 1.a  contador para dar id único a cada trayectoria de task2 */
     int traj_count_ = 0;
 
+    geometry_msgs::msg::Pose task2_start_;   // pose inicial de la línea actual
+    bool task2_started_ = false;             // true cuando ya tenemos "start"
 
     // almacenamiento de la última PoseArray
     geometry_msgs::msg::PoseArray latest_finger_pose_array_;
@@ -138,7 +140,7 @@ void acceptedCallback(
 
 void directionCallback(const std_msgs::msg::String::SharedPtr msg)
 {
-  static const std::set<std::string> valid = {"Izquierda","Derecha","Adelante","Atras","Arriba","Abajo"};
+  static const std::set<std::string> valid = {"X+", "X-", "Y+", "Y-", "Z+", "Z-"};
   if (valid.count(msg->data))
   {
     trajectory_directions_.push_back(msg->data);
@@ -191,64 +193,49 @@ void directionCallback(const std_msgs::msg::String::SharedPtr msg)
 bool moveRelative(const std::string& direction,
                   moveit::planning_interface::MoveGroupInterface& arm_move_group)
 {
-  /* ---------- 3.a  Tomamos pose inicial ---------- */
-  geometry_msgs::msg::PoseStamped start_st = arm_move_group.getCurrentPose();
-  geometry_msgs::msg::Point p0 = start_st.pose.position;
+  /* ---------- 1.  Pose actual = inicio ---------- */
+  geometry_msgs::msg::Pose start = arm_move_group.getCurrentPose().pose;
 
-  /* ---------- 3.b  Calculamos objetivo ---------- */
-  geometry_msgs::msg::Point p = p0;
-  const double step = 0.04; // 2 cm
-  if      (direction == "Derecha")   p.x += step;
-  else if (direction == "Izquierda") p.x -= step;
-  else if (direction == "Adelante")  p.y += step;
-  else if (direction == "Atras")     p.y -= step;
-  else if (direction == "Arriba")    p.z += step;
-  else if (direction == "Abajo")     p.z -= step;
+  /* ---------- 2.  Calculamos objetivo ---------- */
+  geometry_msgs::msg::Pose target = start;
+  const double step = 0.02; // 2 cm
+  if      (direction == "X+")   target.position.x += step;
+  else if (direction == "X-") target.position.x -= step;
+  else if (direction == "Y+")  target.position.y += step;
+  else if (direction == "Y-")     target.position.y -= step;
+  else if (direction == "Z+")    target.position.z += step;
+  else if (direction == "Z-")     target.position.z -= step;
   else {
     RCLCPP_WARN(get_logger(), "Dirección no válida: %s", direction.c_str());
     return false;
   }
 
-    const auto current_joints = arm_move_group.getCurrentJointValues();
+  /* ---------- 3.  Trayectoria cartesiana 2 puntos ---------- */
+  std::vector<geometry_msgs::msg::Pose> waypoints{start, target};
 
-  moveit_msgs::msg::JointConstraint base_limit;
-  base_limit.joint_name      = "joint_link_1";          // ← ajusta al nombre real
-  base_limit.position        = current_joints[0];       // posición actual
-  base_limit.tolerance_above = M_PI;                // +90°
-  base_limit.tolerance_below = 0;                // -90°
-  base_limit.weight          = 1.0;
+  moveit_msgs::msg::RobotTrajectory traj;
+  double fraction = arm_move_group.computeCartesianPath(waypoints, 0.01, 0.0, traj);
+  if (fraction < 0.95) {
+    RCLCPP_WARN(get_logger(), "Sólo se computó %.2f %% del camino", fraction*100);
+    return false;
+  }
+  arm_move_group.execute(traj);
 
-
-  moveit_msgs::msg::Constraints path_constraints;
-  path_constraints.joint_constraints = {base_limit};
-
-  // Activar constraints para todo el ciclo Pick‑Place
-  arm_move_group.setPathConstraints(path_constraints);
-
-  /* ---------- 3.c  Planificamos y ejecutamos ---------- */
-  arm_move_group.setPositionTarget(p.x, p.y, p.z);
-  bool ok = (arm_move_group.move() == moveit::core::MoveItErrorCode::SUCCESS);
-  if (!ok) return false;
-
-  /* ---------- 3.d  Dibujamos la línea real ---------- */
+  /* ---------- 4.  Dibujamos el segmento ---------- */
   visualization_msgs::msg::Marker m;
   m.header.frame_id = "world";
   m.header.stamp    = now();
   m.ns              = "task2_trajectory";
-  m.id              = traj_count_++;   // id único
+  m.id              = traj_count_++;
   m.type            = m.LINE_STRIP;
   m.action          = m.ADD;
-  m.scale.x         = 0.005;           // 5 mm grosor
+  m.scale.x         = 0.005;
   m.color.a         = 1.0;
-
-  /* última trayectoria → verde, anteriores → azul */
-  if (m.id == 0) { m.color.g = 1.0; m.color.r = 0.0; m.color.b = 0.0; }
-  else           { m.color.b = 1.0; m.color.r = 0.0; m.color.g = 0.0; }
-
-  m.points.push_back(p0);   // punto inicial
-  m.points.push_back(p);    // punto final
-
+  m.color.g         = (m.id == 0) ? 1.0 : 0.0;
+  m.color.b         = (m.id == 0) ? 0.0 : 1.0;
+  m.points          = {start.position, target.position};
   marker_pub_->publish(m);
+
   return true;
 }
 
