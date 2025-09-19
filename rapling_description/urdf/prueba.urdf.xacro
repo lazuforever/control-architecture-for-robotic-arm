@@ -10,7 +10,6 @@
     <!-- Include ros2_control Plugins -->
     <xacro:include filename="$(find rapling_description)/urdf/rapling_ros2_control.xacro" />
 
-
   <!-- Enlace virtual "world" para anclar el robot al origen -->
   <link name="world"/> 
 

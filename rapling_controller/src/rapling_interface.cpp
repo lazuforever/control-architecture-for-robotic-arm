@@ -139,8 +139,17 @@ hardware_interface::return_type RaplingInterface::read(const rclcpp::Time &time,
 {
   // Open Loop Control - assuming the robot is always where we command to be
   position_states_ = position_commands_;
+  //  position_states_ = (ANGULOSROBOT_);
 
-  try {
+
+ /* 
+     position_states_ = {ANGULOSROBOT_[0],
+                ANGULOSROBOT_[1],
+                ANGULOSROBOT_[2],
+                ANGULOSROBOT_[4]};
+ 
+ 
+ try {
     // 1) Bloquea hasta recibir '\n'
     std::string line;
     arduino_.ReadLine(line, '\n');   // line = "123,456,789,012\n"
@@ -152,7 +161,7 @@ hardware_interface::return_type RaplingInterface::read(const rclcpp::Time &time,
     while (std::getline(ss, token, ',') && idx < 5) {
       ANGULOSROBOT_[idx++] = std::stoi(token);
     }
-
+    
     // 3) Imprimir en consola
    /* RCLCPP_INFO(rclcpp::get_logger("RaplingInterface"),
                 "ANGULOS ACTUALES -> Base: %d, Shoulder: %d, Elbow: %d, Gripper: %d",
@@ -162,6 +171,7 @@ hardware_interface::return_type RaplingInterface::read(const rclcpp::Time &time,
                 ANGULOSROBOT_[3]); */
 
     // 4) Publicar el JointState con los valores del serial
+     /* 
     sensor_msgs::msg::JointState msg;
     msg.header.stamp = time;  // Usar el tiempo actual
     msg.name = {"base", "shoulder","shoulderB" "elbow", "gripper"};
@@ -181,11 +191,12 @@ hardware_interface::return_type RaplingInterface::read(const rclcpp::Time &time,
     RCLCPP_INFO(rclcpp::get_logger("RaplingInterface"),
                 "Publicado JointState con valores en radianes: [%.3f, %.3f, %.3f, %.3f]",
                 msg.position[0], msg.position[1], msg.position[2], msg.position[3]); */
+     /* 
 
   } catch (const std::exception & e) {
     RCLCPP_ERROR(rclcpp::get_logger("RaplingInterface"),
                  "Error leyendo de serial: %s", e.what());
-  }
+  } */
 
   return hardware_interface::return_type::OK;
 }

@@ -49,7 +49,7 @@ private:
   std::vector<double> position_states_;
 
   // Angles read back from Arduino
-  std::array<int, 5> ANGULOSROBOT_;
+  std::array<double, 5> ANGULOSROBOT_;
 
   // Publisher for the serial readings JointState message
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr serial_angles_pub_;

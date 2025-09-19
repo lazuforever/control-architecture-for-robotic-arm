@@ -24,8 +24,9 @@ namespace rapling_remote
   {
   public:
     explicit TaskServer(const rclcpp::NodeOptions &options = rclcpp::NodeOptions())
-      : Node("task_server", options)
+      : Node("task_server", options),   traj_count_(0)
     {
+   
       RCLCPP_INFO(get_logger(), "Starting the Server");
 
       // 1) Action Server
@@ -55,8 +56,6 @@ namespace rapling_remote
       planned_traj_pub_ = this->create_publisher<trajectory_msgs::msg::JointTrajectory>(
           "/planned_trajectory", 10);
 
-
-
     }
 
   private:
@@ -68,6 +67,11 @@ namespace rapling_remote
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr marker_pub_;
     rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr final_angles_pub_;
     rclcpp::Publisher<trajectory_msgs::msg::JointTrajectory>::SharedPtr planned_traj_pub_;
+
+
+    /* 1.a  contador para dar id único a cada trayectoria de task2 */
+    int traj_count_ = 0;
+
 
     // almacenamiento de la última PoseArray
     geometry_msgs::msg::PoseArray latest_finger_pose_array_;
@@ -90,37 +94,46 @@ namespace rapling_remote
     }
 
 void acceptedCallback(
-  const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-      rapling_msgs::action::RaplinTask>> goal_handle)
+    const std::shared_ptr<rclcpp_action::ServerGoalHandle<
+        rapling_msgs::action::RaplinTask>> goal_handle)
 {
-  // 1) Llevar el brazo a la pose llamada "home1"
-  moveit::planning_interface::MoveGroupInterface arm_move_group(
-      shared_from_this(), "arm");  // usa este nodo
+  /* ---- 1.  ¿Qué tarea es? ---- */
+  const int task = goal_handle->get_goal()->task_number;
 
-  arm_move_group.setNamedTarget("home1");
-  moveit::planning_interface::MoveGroupInterface::Plan home_plan;
+  /* ---- 2.  Solo movemos a “home1” si NO es tele-operación ---- */
+  if (task != 2)   // <- aquí puedes poner cualquier condición futura
+  {
+    moveit::planning_interface::MoveGroupInterface arm_move_group(
+        shared_from_this(), "arm");
 
-  bool ok_home =
-      (arm_move_group.plan(home_plan) ==
-       moveit::core::MoveItErrorCode::SUCCESS);  // evita warning por "deprecated"
+    arm_move_group.setNamedTarget("home1");
+    moveit::planning_interface::MoveGroupInterface::Plan home_plan;
 
-  if (ok_home) {
+    bool ok_home =
+        (arm_move_group.plan(home_plan) ==
+         moveit::core::MoveItErrorCode::SUCCESS);
+
+    if (!ok_home) {
+      RCLCPP_ERROR(get_logger(),
+                   "No se pudo planificar a 'home1'. Abortando goal.");
+      auto result = std::make_shared<
+          rapling_msgs::action::RaplinTask::Result>();
+      result->success = false;
+      goal_handle->abort(result);
+      return;
+    }
+
     arm_move_group.execute(home_plan);
     RCLCPP_INFO(get_logger(),
                 "Pose 'home1' alcanzada. Lanzando hilo execute().");
-
-    // 2) Si todo salió bien, lanza la ejecución normal
-    std::thread(&TaskServer::execute, this, goal_handle).detach();
-  } else {
-    RCLCPP_ERROR(get_logger(),
-                 "No se pudo planificar a 'home1'. Abortando goal.");
-
-    // 3) Abortar el goal porque falló el pre‑movimiento
-    auto result = std::make_shared<
-        rapling_msgs::action::RaplinTask::Result>();
-    result->success = false;
-    goal_handle->abort(result);
   }
+  else {
+    RCLCPP_INFO(get_logger(),
+                "Goal de tele-operación (task 2). Saltando 'home1'.");
+  }
+
+  /* ---- 3.  Ejecutar la lógica del task ---- */
+  std::thread(&TaskServer::execute, this, goal_handle).detach();
 }
 
 void directionCallback(const std_msgs::msg::String::SharedPtr msg)
@@ -175,14 +188,17 @@ void directionCallback(const std_msgs::msg::String::SharedPtr msg)
         return degrees;
     }
 
-bool moveRelative(const std::string& direction, moveit::planning_interface::MoveGroupInterface& arm_move_group)
+bool moveRelative(const std::string& direction,
+                  moveit::planning_interface::MoveGroupInterface& arm_move_group)
 {
-  geometry_msgs::msg::PoseStamped current_pose = arm_move_group.getCurrentPose();
-  geometry_msgs::msg::Point p = current_pose.pose.position;
+  /* ---------- 3.a  Tomamos pose inicial ---------- */
+  geometry_msgs::msg::PoseStamped start_st = arm_move_group.getCurrentPose();
+  geometry_msgs::msg::Point p0 = start_st.pose.position;
 
-  const double step = 0.02; // 2 cm
-
-  if (direction == "Derecha")        p.x += step;
+  /* ---------- 3.b  Calculamos objetivo ---------- */
+  geometry_msgs::msg::Point p = p0;
+  const double step = 0.04; // 2 cm
+  if      (direction == "Derecha")   p.x += step;
   else if (direction == "Izquierda") p.x -= step;
   else if (direction == "Adelante")  p.y += step;
   else if (direction == "Atras")     p.y -= step;
@@ -193,8 +209,47 @@ bool moveRelative(const std::string& direction, moveit::planning_interface::Move
     return false;
   }
 
+    const auto current_joints = arm_move_group.getCurrentJointValues();
+
+  moveit_msgs::msg::JointConstraint base_limit;
+  base_limit.joint_name      = "joint_link_1";          // ← ajusta al nombre real
+  base_limit.position        = current_joints[0];       // posición actual
+  base_limit.tolerance_above = M_PI;                // +90°
+  base_limit.tolerance_below = 0;                // -90°
+  base_limit.weight          = 1.0;
+
+
+  moveit_msgs::msg::Constraints path_constraints;
+  path_constraints.joint_constraints = {base_limit};
+
+  // Activar constraints para todo el ciclo Pick‑Place
+  arm_move_group.setPathConstraints(path_constraints);
+
+  /* ---------- 3.c  Planificamos y ejecutamos ---------- */
   arm_move_group.setPositionTarget(p.x, p.y, p.z);
-  return arm_move_group.move() == moveit::core::MoveItErrorCode::SUCCESS;
+  bool ok = (arm_move_group.move() == moveit::core::MoveItErrorCode::SUCCESS);
+  if (!ok) return false;
+
+  /* ---------- 3.d  Dibujamos la línea real ---------- */
+  visualization_msgs::msg::Marker m;
+  m.header.frame_id = "world";
+  m.header.stamp    = now();
+  m.ns              = "task2_trajectory";
+  m.id              = traj_count_++;   // id único
+  m.type            = m.LINE_STRIP;
+  m.action          = m.ADD;
+  m.scale.x         = 0.005;           // 5 mm grosor
+  m.color.a         = 1.0;
+
+  /* última trayectoria → verde, anteriores → azul */
+  if (m.id == 0) { m.color.g = 1.0; m.color.r = 0.0; m.color.b = 0.0; }
+  else           { m.color.b = 1.0; m.color.r = 0.0; m.color.g = 0.0; }
+
+  m.points.push_back(p0);   // punto inicial
+  m.points.push_back(p);    // punto final
+
+  marker_pub_->publish(m);
+  return true;
 }
 
     // ---- lógica principal ----
