@@ -146,32 +146,82 @@ src/
 
 ## 🚀 Flujo de Operación
 
-### Ejemplo: Pick & Place con Gestos
+### Configuración Inicial
 
-#### 1. Captura de Puntos
-```
-Usuario → Muestra índice → MediaPipe detecta → Convierte a 3D
-        → Cierra puño 3s → Guarda punto 1 (Pick)
-        → Repite → Guarda punto 2 (Place)
-```
+#### 1. Conexión del Hardware
+```bash
+# Verificar puerto serial disponible
+ls /dev/ttyUSB*
 
-#### 2. Comando de Voz
-```
-Usuario: "Alexa, activar robot"
-Alexa → Flask → Obtiene puntos de /finger_poses
-
-Usuario: "Alexa, ejecutar movimiento"
-Alexa → Flask → Envía goal(task_number=1) → Task Server
+# Si el puerto es diferente a /dev/ttyUSB0, modificar en:
+# rapling_description/urdf/rapling_ros2_control.xacro
+# <param name="port">/dev/ttyUSB0</param>
 ```
 
-#### 3. Planificación y Ejecución
+#### 2. Lanzar el Sistema Completo
+```bash
+# Inicia todos los nodos: control, MoveIt2, visión y Alexa
+ros2 launch rapling_bringup real_robot.launch.py
 ```
-Task Server → MoveIt2 planifica trayectoria
-            → Genera waypoints articulares
-            → IPTP parametriza tiempos/velocidades
-            → arm_controller ejecuta
-            → Rapling Interface convierte rad→grados+offset
-            → ESP32 envía comandos a Dynamixels
+
+> **⚠️ Importante:** Al iniciar, el robot ejecuta una rutina de **sincronización automática**:
+> - Lee la posición actual de los motores
+> - Mueve todas las articulaciones a la posición **HOME**
+> - Si no alcanza la posición ideal, el programa no arrancará
+
+#### 3. Configurar ngrok para Alexa
+```bash
+# Ejecutar ngrok para crear túnel HTTPS
+ngrok http 5000
+
+# Copiar la URL generada (ej: https://xxxx.ngrok.io)
+# Configurarla en Alexa Developer Console como endpoint
+```
+
+**Recursos de configuración:**
+- [Tutorial ngrok + Alexa parte 1](https://www.youtube.com/watch?v=dgKL519EF4Q&list=PL9R2s5XMUJUMrBar9WkCkY-oBbvG3DltF&index=76)
+- [Tutorial ngrok + Alexa parte 2](https://www.youtube.com/watch?v=AkZKx2bMaQM&list=PL9R2s5XMUJUMrBar9WkCkY-oBbvG3DltF&index=77)
+
+---
+
+### Operación: Pick & Place con Gestos
+
+#### Paso 1: Capturar Punto de Origen (Pick)
+1. Coloque su **dedo índice** en la posición deseada
+2. El sistema detecta automáticamente la punta del índice con MediaPipe
+3. **Cierre el puño durante 3 segundos** para guardar el punto
+4. Aparecerá una **esfera verde** en RViz marcando la posición
+
+#### Paso 2: Capturar Punto de Destino (Place)
+1. Mueva su mano a la segunda posición
+2. Repita el gesto: **cierre el puño 3 segundos**
+3. Aparecerá una segunda esfera verde en RViz
+
+> **💡 Reiniciar puntos:** Abra completamente la mano para que el sistema vuelva a detectar el primer punto
+
+#### Paso 3: Ejecutar con Comandos de Voz
+
+**Opción A - Pick & Place:**
+```
+Usuario: "Alexa, Control Robot"          → Activa la Skill
+Usuario: "Alexa, Ejecutar movimiento"    → Inicia secuencia Pick→Home→Place
+```
+
+**Opción B - Unir Puntos:**
+```
+Usuario: "Alexa, Control Robot"          → Activa la Skill
+Usuario: "Alexa, Unir puntos"            → Robot traza línea entre puntos
+```
+
+#### Paso 4: Ejecución Automática
+```
+Alexa → Flask → Task Server → MoveIt2 planifica trayectoria
+     → OMPL genera waypoints articulares
+     → IPTP parametriza velocidades/aceleraciones
+     → arm_controller ejecuta la trayectoria
+     → Rapling Interface convierte rad→grados+offset
+     → ESP32 envía comandos seriales a Dynamixels
+     → Motores ejecutan el movimiento
 ```
 
 ## 📊 Resultados
