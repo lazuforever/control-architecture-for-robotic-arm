@@ -213,10 +213,9 @@ ros2 launch rapling_controller controller.launch.py
 ros2 launch rapling_moveit_2 moveit.launch.py
 ros2 launch learning_topic vision_launch.py
 python3 src/rapling_remote/alexa_interface.py
-📝 Documentación
-Este proyecto fue desarrollado como trabajo de grado en la Universidad de Pamplona, implementando metodologías modernas de robótica distribuida con interacción natural persona-robot.
+
 📧 Contacto
-Brayan Dayani
+Brayan Macana 
 
 📧 Email: brayandayani@hotmail.com
 📱 Teléfono: +57 312 364 4501
