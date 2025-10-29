@@ -13,7 +13,7 @@ def generate_launch_description():
         # Nodo para finger_detector.py
         Node(
             package='learning_topic',
-            executable='topic_webcam_sub',
+            executable='finger_detector',
             name='topic_webcam_sub',
             output='screen'
         ),

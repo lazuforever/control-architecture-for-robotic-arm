@@ -41,6 +41,7 @@ class FingerDetector(Node):
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
         
         # Parámetros de calibración / camara propia 
+        
         """
         self.fx = 786.84289    # Distancia focal x
         self.fy = 886.81534    # Distancia focal y
@@ -48,7 +49,6 @@ class FingerDetector(Node):
         self.cy = 250.2981     # Centro óptico y
         self.Z = -0.38         # Distancia estimada 
         """
-    
         # Parámetros de calibración/ Camara Andres_Vargas 
         self.fx = 600.078450   # Distancia focal x
         self.fy = 535.976126    # Distancia focal y
