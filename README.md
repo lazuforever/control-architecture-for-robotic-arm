@@ -252,6 +252,11 @@ ros2 launch learning_topic vision_launch.py
 python3 src/rapling_remote/alexa_interface.py
 ```
 
+## 🎥 Video Demostrativo
+[![Video](https://img.youtube.com/vi/th8r5pwWlAk/0.jpg)](https://youtu.be/th8r5pwWlAk)
+
+
+
 ## 📧 Contacto
 
 **Brayan Macana**
@@ -265,5 +270,7 @@ Para consultas, sugerencias o colaboraciones sobre el proyecto, no dudes en cont
 ---
 
 <p align="center">
+
+    
   Desarrollado con ROS2 Humble | MoveIt2 | MediaPipe | Alexa Skills Kit
 </p>
